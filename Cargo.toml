@@ -1,0 +1,10 @@
+[package]
+name = "rl"
+version = "0.1.0"
+authors = ["Zoltán Nagy <abesto@abesto.net>"]
+edition = "2018"
+
+[dependencies]
+specs = "0.14.0"
+specs-derive = "0.4.0"
+tcod = "0.14"
