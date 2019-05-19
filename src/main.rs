@@ -5,6 +5,7 @@ use tcod::input::Key;
 
 mod components;
 mod map;
+mod mapgen;
 mod systems;
 mod ui;
 
@@ -35,10 +36,7 @@ fn main() {
     // Create player ;)
     world
         .create_entity()
-        .with(Position {
-            x: width / 2,
-            y: height / 2,
-        })
+        .with(Position { x: 25, y: 23 })
         .with(Velocity::new())
         .with(Visual {
             char: '@',

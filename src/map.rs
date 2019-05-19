@@ -35,10 +35,11 @@ pub struct Map {
 
 impl Map {
     pub fn new() -> Map {
+        use crate::mapgen::*;
         // fill map with "unblocked" tiles
-        let mut tiles = vec![vec![Tile::floor(); MAP_HEIGHT as usize]; MAP_WIDTH as usize];
-        tiles[30][22] = Tile::wall();
-        tiles[50][22] = Tile::wall();
+        let mut tiles = vec![vec![Tile::wall(); MAP_HEIGHT as usize]; MAP_WIDTH as usize];
+        create_room(Rect::new(20, 15, 10, 15), &mut tiles);
+        create_room(Rect::new(50, 15, 10, 15), &mut tiles);
         Map { tiles }
     }
 }
