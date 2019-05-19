@@ -1,13 +1,23 @@
-use crate::components::Position;
+use crate::components::{Position, Visual};
 use shred_derive::SystemData;
 use specs::prelude::*;
+use tcod::colors::*;
+use tcod::console::*;
 
 pub struct RenderSystem;
 
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
     position: ReadStorage<'a, Position>,
+    visual: ReadStorage<'a, Visual>,
     ui: WriteExpect<'a, crate::ui::UIState>,
+}
+
+impl RenderSystem {
+    fn draw_object(offscreen: &mut Offscreen, position: &Position, visual: &Visual) {
+        offscreen.set_default_foreground(visual.color);
+        offscreen.put_char(position.x, position.y, visual.char, BackgroundFlag::None);
+    }
 }
 
 impl<'a> System<'a> for RenderSystem {
@@ -15,22 +25,20 @@ impl<'a> System<'a> for RenderSystem {
 
     fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
-        use tcod::colors::*;
-        use tcod::console::*;
 
         let ui = &mut *data.ui;
         let root = &mut ui.consoles.root;
 
         let offscreen_mutex = ui.consoles.offscreen.clone();
-        let mut offscreen = offscreen_mutex.lock().unwrap();
+        let offscreen = &mut *offscreen_mutex.lock().unwrap();
 
         ui.config.apply(root);
 
         offscreen.set_default_foreground(WHITE);
         offscreen.clear();
 
-        for pos in (&data.position).join() {
-            offscreen.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
+        for (position, visual) in (&data.position, &data.visual).join() {
+            Self::draw_object(offscreen, position, visual);
         }
 
         blit(
