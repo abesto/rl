@@ -1,13 +1,15 @@
-mod components;
-mod systems;
-mod ui;
-
-use crate::ui::UIState;
-use components::*;
 use specs::*;
 use systems::*;
 use tcod::colors;
 use tcod::input::Key;
+
+mod components;
+mod map;
+mod systems;
+mod ui;
+
+use components::*;
+use ui::UIState;
 
 fn main() {
     let mut dispatcher = DispatcherBuilder::new()
@@ -18,10 +20,16 @@ fn main() {
 
     let mut world = World::new();
 
+    // Initialize UI state
     let ui_config = ui::UIConfig::new();
     let width = ui_config.width;
     let height = ui_config.height;
     world.add_resource(ui::init(ui_config));
+
+    // Set up the map
+    world.add_resource(map::Map::new());
+
+    // Wire it all up
     dispatcher.setup(&mut world.res);
 
     // Create player ;)
@@ -31,7 +39,7 @@ fn main() {
             x: width / 2,
             y: height / 2,
         })
-        .with(Velocity { x: 0, y: 0 })
+        .with(Velocity::new())
         .with(Visual {
             char: '@',
             color: colors::WHITE,
@@ -46,7 +54,7 @@ fn main() {
             x: width / 2 - 5,
             y: height / 2,
         })
-        .with(Velocity { x: 0, y: 0 })
+        .with(Velocity::new())
         .with(Visual {
             char: '@',
             color: colors::YELLOW,

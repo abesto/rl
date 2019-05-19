@@ -13,7 +13,7 @@ pub struct UIConfig {
 
 pub struct UIConsoles {
     pub root: Root,
-    pub offscreen: Arc<Mutex<Offscreen>>,
+    pub map: Arc<Mutex<Offscreen>>,
 }
 
 pub struct UIState {
@@ -55,8 +55,6 @@ pub fn init(config: UIConfig) -> UIState {
         .title("Rust/libtcod tutorial")
         .init();
 
-    let offscreen = Offscreen::new(config.width, config.height);
-
     tcod::system::set_fps(LIMIT_FPS);
 
     UIState {
@@ -64,7 +62,10 @@ pub fn init(config: UIConfig) -> UIState {
         exit_requested: false,
         consoles: UIConsoles {
             root,
-            offscreen: Arc::new(Mutex::new(offscreen)),
+            map: Arc::new(Mutex::new(Offscreen::new(
+                crate::map::MAP_WIDTH,
+                crate::map::MAP_HEIGHT,
+            ))),
         },
     }
 }

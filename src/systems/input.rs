@@ -1,9 +1,9 @@
-use crate::ui::UIState;
 use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::input::Key;
 
 use crate::components::{Player, Velocity};
+use crate::ui::UIState;
 
 pub struct InputSystem;
 
@@ -20,6 +20,7 @@ impl<'a> System<'a> for InputSystem {
     type SystemData = InputSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
+        use crate::components::velocity::Heading::*;
         use specs::Join;
         use tcod::input::KeyCode::*;
 
@@ -35,10 +36,10 @@ impl<'a> System<'a> for InputSystem {
                         data.ui.config.fullscreen = !data.ui.config.fullscreen;
                     }
                     Key { code: Escape, .. } => data.ui.exit_requested = true,
-                    Key { code: Up, .. } => vel.y -= 1,
-                    Key { code: Down, .. } => vel.y += 1,
-                    Key { code: Left, .. } => vel.x -= 1,
-                    Key { code: Right, .. } => vel.x += 1,
+                    Key { code: Up, .. } => *vel = Velocity::unit(North),
+                    Key { code: Right, .. } => *vel = Velocity::unit(East),
+                    Key { code: Down, .. } => *vel = Velocity::unit(South),
+                    Key { code: Left, .. } => *vel = Velocity::unit(West),
                     _ => (),
                 }
             }

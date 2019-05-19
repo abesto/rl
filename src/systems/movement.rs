@@ -1,19 +1,34 @@
+use shred_derive::SystemData;
+use specs::prelude::*;
+
 use crate::components::{Position, Velocity};
-use specs::{System, WriteStorage};
+use crate::map::Map;
 
 pub struct MovementSystem;
 
-impl<'a> System<'a> for MovementSystem {
-    type SystemData = (WriteStorage<'a, Position>, WriteStorage<'a, Velocity>);
+#[derive(SystemData)]
+pub struct MovementSystemData<'a> {
+    position: WriteStorage<'a, Position>,
+    velocity: WriteStorage<'a, Velocity>,
+    map: ReadExpect<'a, Map>,
+}
 
-    fn run(&mut self, (mut pos_storage, mut vel_storage): Self::SystemData) {
+impl<'a> System<'a> for MovementSystem {
+    type SystemData = MovementSystemData<'a>;
+
+    fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
 
-        for (mut pos, mut vel) in (&mut pos_storage, &mut vel_storage).join() {
-            pos.x += vel.x;
-            pos.y += vel.y;
-            vel.x = 0;
-            vel.y = 0;
+        for (pos, mut vel) in (&mut data.position, &mut data.velocity).join() {
+            while vel.magnitude != 0 {
+                let candidate = &*pos + &*vel;
+                if data.map[&candidate].blocked {
+                    vel.magnitude = 0;
+                    break;
+                }
+                *pos = candidate;
+                vel.magnitude -= 1;
+            }
         }
     }
 }
