@@ -1,92 +1,17 @@
 extern crate specs;
+extern crate tcod;
 #[macro_use]
 extern crate specs_derive;
 
+mod components;
+mod systems;
 mod ui;
 
-use specs::DispatcherBuilder;
-use specs::{Builder, World};
-use specs::{Component, VecStorage};
-use specs::{ReadExpect, ReadStorage, System, WriteExpect, WriteStorage};
-use tcod::input::Key;
-
+use components::*;
+use specs::*;
+use systems::*;
 use tcod::console::Root;
-
-#[derive(Component, Debug)]
-#[storage(VecStorage)]
-struct Position {
-    x: i32,
-    y: i32,
-}
-
-#[derive(Component, Debug)]
-#[storage(VecStorage)]
-struct Velocity {
-    x: i32,
-    y: i32,
-}
-
-struct InputSystem;
-
-impl<'a> System<'a> for InputSystem {
-    type SystemData = (ReadExpect<'a, Option<Key>>, WriteStorage<'a, Velocity>);
-
-    fn run(&mut self, (key, mut vel_storage): Self::SystemData) {
-        use specs::Join;
-        use tcod::input::KeyCode::*;
-
-        for vel in (&mut vel_storage).join() {
-            key.map(|k| match k {
-                Key { code: Up, .. } => vel.y -= 1,
-                Key { code: Down, .. } => vel.y += 1,
-                Key { code: Left, .. } => vel.x -= 1,
-                Key { code: Right, .. } => vel.x += 1,
-                _ => (),
-            });
-        }
-    }
-}
-
-struct MovementSystem;
-
-impl<'a> System<'a> for MovementSystem {
-    type SystemData = (WriteStorage<'a, Position>, WriteStorage<'a, Velocity>);
-
-    fn run(&mut self, (mut pos_storage, mut vel_storage): Self::SystemData) {
-        use specs::Join;
-
-        for (mut pos, mut vel) in (&mut pos_storage, &mut vel_storage).join() {
-            pos.x += vel.x;
-            pos.y += vel.y;
-            vel.x = 0;
-            vel.y = 0;
-        }
-    }
-}
-
-struct RenderSystem;
-
-impl<'a> System<'a> for RenderSystem {
-    type SystemData = (
-        WriteExpect<'a, tcod::console::Root>,
-        ReadStorage<'a, Position>,
-    );
-
-    fn run(&mut self, (mut root, pos_storage): Self::SystemData) {
-        use specs::Join;
-        use tcod::colors::*;
-        use tcod::console::*;
-
-        root.set_default_foreground(WHITE);
-        root.clear();
-
-        for pos in (&pos_storage).join() {
-            root.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
-        }
-
-        root.flush();
-    }
-}
+use tcod::input::Key;
 
 fn main() {
     let mut dispatcher = DispatcherBuilder::new()
