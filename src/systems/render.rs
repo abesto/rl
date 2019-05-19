@@ -7,9 +7,7 @@ pub struct RenderSystem;
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
     position: ReadStorage<'a, Position>,
-
-    ui_config: ReadExpect<'a, crate::ui::UiConfig>,
-    root: WriteExpect<'a, tcod::console::Root>,
+    ui: WriteExpect<'a, crate::ui::UIState>,
 }
 
 impl<'a> System<'a> for RenderSystem {
@@ -20,15 +18,31 @@ impl<'a> System<'a> for RenderSystem {
         use tcod::colors::*;
         use tcod::console::*;
 
-        data.ui_config.apply(&mut *data.root);
+        let ui = &mut *data.ui;
+        let root = &mut ui.consoles.root;
 
-        data.root.set_default_foreground(WHITE);
-        data.root.clear();
+        let offscreen_mutex = ui.consoles.offscreen.clone();
+        let mut offscreen = offscreen_mutex.lock().unwrap();
+
+        ui.config.apply(root);
+
+        offscreen.set_default_foreground(WHITE);
+        offscreen.clear();
 
         for pos in (&data.position).join() {
-            data.root.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
+            offscreen.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
         }
 
-        data.root.flush();
+        blit(
+            &*offscreen,
+            (0, 0),
+            (ui.config.width, ui.config.height),
+            root,
+            (0, 0),
+            1.0,
+            1.0,
+        );
+
+        root.flush();
     }
 }

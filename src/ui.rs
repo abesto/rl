@@ -1,19 +1,34 @@
+use std::sync::{Arc, Mutex};
 use tcod::console::*;
 
-pub struct UiConfig {
+const SCREEN_WIDTH: i32 = 80;
+const SCREEN_HEIGHT: i32 = 50;
+const LIMIT_FPS: i32 = 20;
+
+pub struct UIConfig {
     pub width: i32,
     pub height: i32,
     pub fullscreen: bool,
+}
+
+pub struct UIConsoles {
+    pub root: Root,
+    pub offscreen: Arc<Mutex<Offscreen>>,
+}
+
+pub struct UIState {
+    pub config: UIConfig,
+    pub consoles: UIConsoles,
+
     pub exit_requested: bool,
 }
 
-impl UiConfig {
-    pub fn new() -> UiConfig {
-        UiConfig {
-            width: 80,
-            height: 50,
+impl UIConfig {
+    pub fn new() -> UIConfig {
+        UIConfig {
+            width: SCREEN_WIDTH,
+            height: SCREEN_HEIGHT,
             fullscreen: false,
-            exit_requested: false,
         }
     }
 
@@ -30,9 +45,7 @@ impl UiConfig {
     }
 }
 
-const LIMIT_FPS: i32 = 20;
-
-pub fn init(config: &UiConfig) -> Root {
+pub fn init(config: UIConfig) -> UIState {
     use tcod::console::Root;
 
     let root = Root::initializer()
@@ -42,7 +55,16 @@ pub fn init(config: &UiConfig) -> Root {
         .title("Rust/libtcod tutorial")
         .init();
 
+    let offscreen = Offscreen::new(config.width, config.height);
+
     tcod::system::set_fps(LIMIT_FPS);
 
-    root
+    UIState {
+        config,
+        exit_requested: false,
+        consoles: UIConsoles {
+            root,
+            offscreen: Arc::new(Mutex::new(offscreen)),
+        },
+    }
 }

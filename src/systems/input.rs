@@ -1,4 +1,4 @@
-use crate::ui::UiConfig;
+use crate::ui::UIState;
 use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::input::Key;
@@ -12,7 +12,7 @@ pub struct InputSystemData<'a> {
     key: Read<'a, Option<Key>>,
     velocity: WriteStorage<'a, Velocity>,
 
-    ui_config: WriteExpect<'a, UiConfig>,
+    ui: WriteExpect<'a, UIState>,
 }
 
 impl<'a> System<'a> for InputSystem {
@@ -31,9 +31,9 @@ impl<'a> System<'a> for InputSystem {
                         ..
                     } => {
                         // Alt+Enter: toggle fullscreen
-                        data.ui_config.fullscreen = !data.ui_config.fullscreen;
+                        data.ui.config.fullscreen = !data.ui.config.fullscreen;
                     }
-                    Key { code: Escape, .. } => data.ui_config.exit_requested = true,
+                    Key { code: Escape, .. } => data.ui.exit_requested = true,
                     Key { code: Up, .. } => vel.y -= 1,
                     Key { code: Down, .. } => vel.y += 1,
                     Key { code: Left, .. } => vel.x -= 1,

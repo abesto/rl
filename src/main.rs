@@ -2,11 +2,10 @@ mod components;
 mod systems;
 mod ui;
 
-use crate::ui::UiConfig;
+use crate::ui::UIState;
 use components::*;
 use specs::*;
 use systems::*;
-use tcod::console::Root;
 use tcod::input::Key;
 
 fn main() {
@@ -18,9 +17,8 @@ fn main() {
 
     let mut world = World::new();
 
-    let ui_config = ui::UiConfig::new();
-    world.add_resource(ui::init(&ui_config));
-    world.add_resource(ui_config);
+    let ui_config = ui::UIConfig::new();
+    world.add_resource(ui::init(ui_config));
 
     dispatcher.setup(&mut world.res);
 
@@ -32,10 +30,15 @@ fn main() {
         .build();
 
     dispatcher.dispatch(&world.res);
-    while !world.read_resource::<UiConfig>().exit_requested {
+    while !world.read_resource::<UIState>().exit_requested {
         world.maintain();
-        *world.write_resource::<Option<Key>>() =
-            Some(world.write_resource::<Root>().wait_for_keypress(true));
+        *world.write_resource::<Option<Key>>() = Some(
+            world
+                .write_resource::<UIState>()
+                .consoles
+                .root
+                .wait_for_keypress(true),
+        );
         dispatcher.dispatch(&world.res);
     }
 }
