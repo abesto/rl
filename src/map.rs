@@ -9,6 +9,7 @@ pub const MAP_HEIGHT: i32 = 45;
 pub struct Tile {
     pub blocked: bool,
     pub block_sight: bool,
+    pub explored: bool,
 }
 
 impl Tile {
@@ -16,6 +17,7 @@ impl Tile {
         Tile {
             blocked: false,
             block_sight: false,
+            explored: false,
         }
     }
 
@@ -23,6 +25,7 @@ impl Tile {
         Tile {
             blocked: true,
             block_sight: true,
+            explored: false,
         }
     }
 }
@@ -35,6 +38,7 @@ pub struct Map {
 }
 
 impl Map {
+    #[allow(dead_code)]
     pub fn new_simple() -> Map {
         use crate::mapgen::*;
         // fill map with "unblocked" tiles

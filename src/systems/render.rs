@@ -42,24 +42,6 @@ pub struct RenderSystemData<'a> {
 }
 
 impl RenderSystem {
-    fn draw_map(offscreen: &mut Offscreen, map: &Map) {
-        for x in 0..MAP_WIDTH {
-            for y in 0..MAP_HEIGHT {
-                let wall = map.tiles[x as usize][y as usize].block_sight;
-                offscreen.set_char_background(
-                    x as i32,
-                    y as i32,
-                    if wall {
-                        COLOR_DARK_WALL
-                    } else {
-                        COLOR_DARK_GROUND
-                    },
-                    BackgroundFlag::Set,
-                );
-            }
-        }
-    }
-
     fn draw_object(offscreen: &mut Offscreen, position: &Position, visual: &Visual) {
         offscreen.set_default_foreground(visual.color);
         offscreen.put_char(position.x, position.y, visual.char, BackgroundFlag::None);
@@ -85,11 +67,12 @@ impl RenderSystem {
         }
     }
 
-    fn draw_fov(offscreen: &mut Offscreen, map: &Map, fov_map_arc: &Arc<Mutex<FovMap>>) {
-        let fov_map_mutex = fov_map_arc.clone();
-        let fov_map = fov_map_mutex.lock().unwrap();
+    fn draw_fov(offscreen: &mut Offscreen, map: &Map, fov_map: &FovMap) {
         for y in 0..MAP_HEIGHT {
             for x in 0..MAP_WIDTH {
+                if !map.tiles[x as usize][y as usize].explored {
+                    continue;
+                }
                 let visible = fov_map.is_in_fov(x, y);
                 let wall = map.tiles[x as usize][y as usize].block_sight;
                 let color = match (visible, wall) {
@@ -118,14 +101,19 @@ impl<'a> System<'a> for RenderSystem {
         let map_mutex = ui.consoles.map.clone();
         let map = &mut *map_mutex.lock().unwrap();
 
+        let fov_map_mutex = data.fov_map.clone();
+        let fov_map = &*fov_map_mutex.lock().unwrap();
+
         ui.config.apply(root);
 
         map.set_default_foreground(WHITE);
         map.clear();
 
-        Self::draw_map(map, &data.map);
-        Self::draw_fov(map, &data.map, &data.fov_map);
+        Self::draw_fov(map, &data.map, fov_map);
         for (entity, position, visual) in (&data.entity, &data.position, &data.visual).join() {
+            if !fov_map.is_in_fov(position.x, position.y) {
+                continue;
+            }
             // Draw movement shadow for debugging
             if let Some(prev_pos) = data.prev_position.get(entity) {
                 Self::draw_movement_shadow(map, prev_pos, visual);

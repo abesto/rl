@@ -19,6 +19,7 @@ fn main() {
         .with(LocationHistorySystem, "location_history", &[])
         .with(MovementSystem, "movement", &["input", "location_history"])
         .with(FovSystem, "fov", &["movement"])
+        .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
         .build();
 

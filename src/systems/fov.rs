@@ -5,7 +5,7 @@ use specs::prelude::*;
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
 use crate::components::{Player, Position, PreviousPosition};
-use crate::map::{Map, Tiles, MAP_HEIGHT, MAP_WIDTH};
+use crate::map::{Tiles, MAP_HEIGHT, MAP_WIDTH};
 
 const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
@@ -25,7 +25,7 @@ pub struct FovSystem;
 impl<'a> System<'a> for FovSystem {
     type SystemData = FovSystemData<'a>;
 
-    fn run(&mut self, mut data: Self::SystemData) {
+    fn run(&mut self, data: Self::SystemData) {
         for (prev, pos, _) in (&data.prev_position, &data.position, &data.player).join() {
             // recompute FOV if needed (the player moved or something)
             if prev.x != pos.x || prev.y != pos.x {
