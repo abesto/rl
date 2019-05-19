@@ -36,6 +36,7 @@ fn main() {
             char: '@',
             color: colors::WHITE,
         })
+        .with(Player)
         .build();
 
     // And an NPC

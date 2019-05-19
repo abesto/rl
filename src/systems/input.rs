@@ -3,7 +3,7 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::input::Key;
 
-use crate::components::Velocity;
+use crate::components::{Player, Velocity};
 
 pub struct InputSystem;
 
@@ -11,6 +11,7 @@ pub struct InputSystem;
 pub struct InputSystemData<'a> {
     key: Read<'a, Option<Key>>,
     velocity: WriteStorage<'a, Velocity>,
+    player: ReadStorage<'a, Player>,
 
     ui: WriteExpect<'a, UIState>,
 }
@@ -22,7 +23,7 @@ impl<'a> System<'a> for InputSystem {
         use specs::Join;
         use tcod::input::KeyCode::*;
 
-        for vel in (&mut data.velocity).join() {
+        for (vel, _) in (&mut data.velocity, &data.player).join() {
             if let Some(k) = *data.key {
                 match k {
                     Key {
