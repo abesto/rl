@@ -4,7 +4,7 @@ use crate::components::Velocity;
 use specs::{Component, VecStorage};
 use specs_derive::Component;
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, PartialEq)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: i32,
@@ -34,4 +34,11 @@ impl Add<&Velocity> for &Position {
             y: self.y + other.y,
         }
     }
+}
+
+#[derive(Component, Debug, Clone, PartialEq)]
+#[storage(VecStorage)]
+pub struct PreviousPosition {
+    pub x: i32,
+    pub y: i32,
 }

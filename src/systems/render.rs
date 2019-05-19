@@ -1,7 +1,8 @@
-use crate::components::{Position, Visual};
+use crate::components::{Position, PreviousPosition, Visual};
 use crate::map::Map;
 use shred_derive::SystemData;
 use specs::prelude::*;
+use tcod::colors;
 use tcod::colors::*;
 use tcod::console::*;
 
@@ -16,6 +17,8 @@ pub struct RenderSystem;
 
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
+    entity: Entities<'a>,
+    prev_position: ReadStorage<'a, PreviousPosition>,
     position: ReadStorage<'a, Position>,
     visual: ReadStorage<'a, Visual>,
 
@@ -66,7 +69,24 @@ impl<'a> System<'a> for RenderSystem {
         map.clear();
 
         Self::draw_map(map, &data.map);
-        for (position, visual) in (&data.position, &data.visual).join() {
+        for (entity, position, visual) in (&data.entity, &data.position, &data.visual).join() {
+            // Draw movement shadow if it exists
+            if let Some(prev_pos) = data.prev_position.get(entity) {
+                if prev_pos.x >= 0 && prev_pos.y >= 0 {
+                    Self::draw_object(
+                        map,
+                        &Position {
+                            x: prev_pos.x,
+                            y: prev_pos.y,
+                        },
+                        &Visual {
+                            char: visual.char,
+                            color: colors::DARK_GREY,
+                        },
+                    );
+                }
+            }
+            // Draw the object proper
             Self::draw_object(map, position, visual);
         }
 

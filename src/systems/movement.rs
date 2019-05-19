@@ -20,6 +20,7 @@ impl<'a> System<'a> for MovementSystem {
         use specs::Join;
 
         for (pos, mut vel) in (&mut data.position, &mut data.velocity).join() {
+            let orig_pos = pos.clone();
             while vel.magnitude != 0 {
                 let candidate = &*pos + &*vel;
                 if data.map[&candidate].blocked {

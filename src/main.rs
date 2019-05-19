@@ -9,13 +9,15 @@ mod mapgen;
 mod systems;
 mod ui;
 
+use crate::components::position::PreviousPosition;
 use components::*;
 use ui::UIState;
 
 fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
-        .with(MovementSystem, "movement", &["input"])
+        .with(MovementShadowSystem, "debug:shadow", &[])
+        .with(MovementSystem, "movement", &["input", "debug:shadow"])
         .with_thread_local(RenderSystem)
         .build();
 
@@ -45,6 +47,7 @@ fn main() {
             color: colors::WHITE,
         })
         .with(Player)
+        .with(PreviousPosition { x: -1, y: -1 })
         .build();
 
     // And an NPC
