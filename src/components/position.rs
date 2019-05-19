@@ -4,7 +4,7 @@ use crate::components::Velocity;
 use specs::{Component, VecStorage};
 use specs_derive::Component;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: i32,

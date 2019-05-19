@@ -28,7 +28,9 @@ fn main() {
     world.add_resource(ui::init(ui_config));
 
     // Set up the map
-    world.add_resource(map::Map::new());
+    let map = map::Map::new_random();
+    let spawn_point = map.spawn_point.clone();
+    world.add_resource(map);
 
     // Wire it all up
     dispatcher.setup(&mut world.res);
@@ -36,7 +38,7 @@ fn main() {
     // Create player ;)
     world
         .create_entity()
-        .with(Position { x: 25, y: 23 })
+        .with(spawn_point)
         .with(Velocity::new())
         .with(Visual {
             char: '@',
