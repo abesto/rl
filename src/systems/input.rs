@@ -5,8 +5,6 @@ use tcod::input::Key;
 use crate::components::{Player, Velocity};
 use crate::ui::UIState;
 
-pub struct InputSystem;
-
 #[derive(SystemData)]
 pub struct InputSystemData<'a> {
     key: Read<'a, Option<Key>>,
@@ -15,6 +13,8 @@ pub struct InputSystemData<'a> {
 
     ui: WriteExpect<'a, UIState>,
 }
+
+pub struct InputSystem;
 
 impl<'a> System<'a> for InputSystem {
     type SystemData = InputSystemData<'a>;

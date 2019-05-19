@@ -3,16 +3,16 @@ use specs::prelude::*;
 
 use crate::components::{Position, PreviousPosition};
 
-pub struct MovementShadowSystem;
+pub struct LocationHistorySystem;
 
 #[derive(SystemData)]
-pub struct MovementShadowSystemData<'a> {
+pub struct LocationHistorySystemData<'a> {
     position: ReadStorage<'a, Position>,
     prev_position: WriteStorage<'a, PreviousPosition>,
 }
 
-impl<'a> System<'a> for MovementShadowSystem {
-    type SystemData = MovementShadowSystemData<'a>;
+impl<'a> System<'a> for LocationHistorySystem {
+    type SystemData = LocationHistorySystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;

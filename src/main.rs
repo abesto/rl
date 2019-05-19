@@ -16,8 +16,9 @@ use ui::UIState;
 fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
-        .with(MovementShadowSystem, "debug:shadow", &[])
-        .with(MovementSystem, "movement", &["input", "debug:shadow"])
+        .with(LocationHistorySystem, "location_history", &[])
+        .with(MovementSystem, "movement", &["input", "location_history"])
+        .with(FovSystem, "fov", &["movement"])
         .with_thread_local(RenderSystem)
         .build();
 
@@ -31,8 +32,10 @@ fn main() {
 
     // Set up the map
     let map = map::Map::new_random();
+    let fov_map = systems::fov::new_fov_map(&map.tiles);
     let spawn_point = map.spawn_point.clone();
     world.add_resource(map);
+    world.add_resource(fov_map);
 
     // Wire it all up
     dispatcher.setup(&mut world.res);
