@@ -1,26 +1,34 @@
 use crate::components::Position;
-use specs::{ReadStorage, System, WriteExpect};
+use shred_derive::SystemData;
+use specs::prelude::*;
 
 pub struct RenderSystem;
 
-impl<'a> System<'a> for RenderSystem {
-    type SystemData = (
-        WriteExpect<'a, tcod::console::Root>,
-        ReadStorage<'a, Position>,
-    );
+#[derive(SystemData)]
+pub struct RenderSystemData<'a> {
+    position: ReadStorage<'a, Position>,
 
-    fn run(&mut self, (mut root, pos_storage): Self::SystemData) {
+    ui_config: ReadExpect<'a, crate::ui::UiConfig>,
+    root: WriteExpect<'a, tcod::console::Root>,
+}
+
+impl<'a> System<'a> for RenderSystem {
+    type SystemData = RenderSystemData<'a>;
+
+    fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
         use tcod::colors::*;
         use tcod::console::*;
 
-        root.set_default_foreground(WHITE);
-        root.clear();
+        data.ui_config.apply(&mut *data.root);
 
-        for pos in (&pos_storage).join() {
-            root.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
+        data.root.set_default_foreground(WHITE);
+        data.root.clear();
+
+        for pos in (&data.position).join() {
+            data.root.put_char(pos.x, pos.y, '@', BackgroundFlag::None);
         }
 
-        root.flush();
+        data.root.flush();
     }
 }

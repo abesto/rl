@@ -351,6 +351,8 @@ dependencies = [
 name = "rl"
 version = "0.1.0"
 dependencies = [
+ "shred 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shred-derive 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "specs 0.14.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "specs-derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tcod 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",

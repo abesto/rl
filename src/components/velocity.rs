@@ -1,4 +1,5 @@
 use specs::{Component, VecStorage};
+use specs_derive::Component;
 
 #[derive(Component, Debug)]
 #[storage(VecStorage)]
