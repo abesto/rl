@@ -2,7 +2,7 @@ use std::cmp;
 
 use rand::Rng;
 use specs::world::Builder;
-use specs::World;
+use specs::{ReadStorage, World};
 use tcod::colors;
 
 use crate::components::*;
@@ -53,7 +53,7 @@ pub fn create_room(room: Rect, map: &mut Tiles) {
     }
 }
 
-fn place_objects(room: Rect, world: &mut World) {
+fn place_objects(map: &Map, room: Rect, world: &mut World) {
     // choose random number of monsters
     let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
 
@@ -61,13 +61,26 @@ fn place_objects(room: Rect, world: &mut World) {
         // choose random spot for this monster
         let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
         let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
+        let position = Position { x, y };
+
+        // Check that we're not trying to place this monster at a location already occupied
+        // by something. This is hella convoluted, but at least it's both correct, and works.
+        {
+            use specs::Join;
+            let storage =
+                world.system_data::<(ReadStorage<Position>, ReadStorage<BlocksMovement>)>();
+            let joinable_storage = (&storage.0, &storage.1);
+            if map.is_blocked(&position, joinable_storage.join()) {
+                continue;
+            }
+        }
 
         if rand::random::<f32>() < 0.8 {
             // 80% chance of getting an orc
             // create an orc
             world
                 .create_entity()
-                .with(Position { x, y })
+                .with(position)
                 .with(Visual {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
@@ -79,7 +92,7 @@ fn place_objects(room: Rect, world: &mut World) {
         } else {
             world
                 .create_entity()
-                .with(Position { x, y })
+                .with(position)
                 .with(Visual {
                     char: 'T',
                     color: colors::DARKER_GREEN,
@@ -105,8 +118,10 @@ pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Tiles) {
 }
 
 pub fn generate_map(world: &mut World) {
-    let mut tiles = vec![vec![Tile::wall(); MAP_HEIGHT as usize]; MAP_WIDTH as usize];
-    let mut spawn_point = Position { x: 0, y: 0 };
+    let mut map = Map {
+        tiles: vec![vec![Tile::wall(); MAP_HEIGHT as usize]; MAP_WIDTH as usize],
+        spawn_point: Position { x: 0, y: 0 },
+    };
     let mut rooms = vec![];
 
     for _ in 0..MAX_ROOMS {
@@ -128,17 +143,17 @@ pub fn generate_map(world: &mut World) {
             // this means there are no intersections, so this room is valid
 
             // "paint" it to the map's tiles
-            create_room(new_room, &mut tiles);
+            create_room(new_room, &mut map.tiles);
             // add some content to this room, such as monsters
-            place_objects(new_room, world);
+            place_objects(&map, new_room, world);
 
             // center coordinates of the new room, will be useful later
             let (new_x, new_y) = new_room.center();
 
             if rooms.is_empty() {
                 // this is the first room, where the player starts at
-                spawn_point.x = new_x;
-                spawn_point.y = new_y;
+                map.spawn_point.x = new_x;
+                map.spawn_point.y = new_y;
             } else {
                 // all rooms after the first:
                 // connect it to the previous room with a tunnel
@@ -149,12 +164,12 @@ pub fn generate_map(world: &mut World) {
                 // draw a coin (random bool value -- either true or false)
                 if rand::random() {
                     // first move horizontally, then vertically
-                    create_h_tunnel(prev_x, new_x, prev_y, &mut tiles);
-                    create_v_tunnel(prev_y, new_y, new_x, &mut tiles);
+                    create_h_tunnel(prev_x, new_x, prev_y, &mut map.tiles);
+                    create_v_tunnel(prev_y, new_y, new_x, &mut map.tiles);
                 } else {
                     // first move vertically, then horizontally
-                    create_v_tunnel(prev_y, new_y, prev_x, &mut tiles);
-                    create_h_tunnel(prev_x, new_x, new_y, &mut tiles);
+                    create_v_tunnel(prev_y, new_y, prev_x, &mut map.tiles);
+                    create_h_tunnel(prev_x, new_x, new_y, &mut map.tiles);
                 }
             }
 
@@ -163,5 +178,5 @@ pub fn generate_map(world: &mut World) {
         }
     }
 
-    world.add_resource(Map { tiles, spawn_point });
+    world.add_resource(map);
 }

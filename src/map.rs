@@ -1,7 +1,9 @@
 use std::ops::Index;
 
-use crate::components::Position;
-use specs::World;
+use crate::components::{BlocksMovement, Position};
+use shred::Resource;
+use specs::join::JoinIter;
+use specs::{ReadStorage, World};
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 45;
@@ -58,6 +60,24 @@ impl Map {
 
     pub fn new_random(world: &mut World) {
         crate::mapgen::generate_map(world)
+    }
+
+    pub fn is_blocked(
+        &self,
+        pos: &Position,
+        join: JoinIter<(&ReadStorage<Position>, &ReadStorage<BlocksMovement>)>,
+    ) -> bool {
+        // First check for walls
+        if self[pos].blocked {
+            return true;
+        }
+        // Check for objects blocking movement
+        for (collider_pos, _) in join {
+            if collider_pos == pos {
+                return true;
+            }
+        }
+        false
     }
 }
 

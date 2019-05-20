@@ -24,24 +24,14 @@ impl<'a> System<'a> for CollisionSystem {
         use specs::Join;
 
         for (pos, mut vel) in (&data.mover_position, &mut data.velocity).join() {
-            let mut cleared = 0;
-            let mut blocked = false;
-            while !blocked && cleared < vel.magnitude {
-                let candidate = &*pos + &*vel;
-                // First check for walls
-                blocked = data.map[&candidate].blocked;
-                // Check for objects blocking movement
-                for (collider_pos, _) in (&data.collider_position, &data.collider).join() {
-                    if collider_pos == &candidate {
-                        blocked = true;
-                    }
-                }
-                // If nothing blocked our path, we're cleared to move one tile further
-                if !blocked {
-                    cleared += 1;
-                }
+            let candidate = &*pos + &*vel;
+            let blocked = data
+                .map
+                .is_blocked(&candidate, (&data.collider_position, &data.collider).join());
+            // If something blocks the movement, reject the whole thing
+            if blocked {
+                vel.magnitude = 0;
             }
-            vel.magnitude = cleared;
         }
     }
 }
