@@ -1,13 +1,17 @@
 use std::cmp;
 
 use rand::Rng;
+use specs::world::Builder;
+use specs::World;
+use tcod::colors;
 
-use crate::components::Position;
+use crate::components::{Position, Visual};
 use crate::map::*;
 
 const ROOM_MAX_SIZE: i32 = 10;
 const ROOM_MIN_SIZE: i32 = 6;
 const MAX_ROOMS: i32 = 30;
+const MAX_ROOM_MONSTERS: i32 = 3;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Rect {
@@ -49,6 +53,39 @@ pub fn create_room(room: Rect, map: &mut Tiles) {
     }
 }
 
+fn place_objects(room: Rect, world: &mut World) {
+    // choose random number of monsters
+    let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
+
+    for _ in 0..num_monsters {
+        // choose random spot for this monster
+        let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
+        let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
+
+        if rand::random::<f32>() < 0.8 {
+            // 80% chance of getting an orc
+            // create an orc
+            world
+                .create_entity()
+                .with(Position { x, y })
+                .with(Visual {
+                    char: 'o',
+                    color: colors::DESATURATED_GREEN,
+                })
+                .build();
+        } else {
+            world
+                .create_entity()
+                .with(Position { x, y })
+                .with(Visual {
+                    char: 'T',
+                    color: colors::DARKER_GREEN,
+                })
+                .build();
+        };
+    }
+}
+
 pub fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Tiles) {
     for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
         map[x as usize][y as usize] = Tile::floor();
@@ -61,7 +98,7 @@ pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Tiles) {
     }
 }
 
-pub fn generate_map() -> Map {
+pub fn generate_map(world: &mut World) {
     let mut tiles = vec![vec![Tile::wall(); MAP_HEIGHT as usize]; MAP_WIDTH as usize];
     let mut spawn_point = Position { x: 0, y: 0 };
     let mut rooms = vec![];
@@ -86,6 +123,8 @@ pub fn generate_map() -> Map {
 
             // "paint" it to the map's tiles
             create_room(new_room, &mut tiles);
+            // add some content to this room, such as monsters
+            place_objects(new_room, world);
 
             // center coordinates of the new room, will be useful later
             let (new_x, new_y) = new_room.center();
@@ -118,5 +157,5 @@ pub fn generate_map() -> Map {
         }
     }
 
-    Map { tiles, spawn_point }
+    world.add_resource(Map { tiles, spawn_point });
 }

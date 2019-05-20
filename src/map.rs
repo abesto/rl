@@ -1,6 +1,7 @@
 use std::ops::Index;
 
 use crate::components::Position;
+use specs::World;
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 45;
@@ -55,8 +56,8 @@ impl Map {
         }
     }
 
-    pub fn new_random() -> Map {
-        crate::mapgen::generate_map()
+    pub fn new_random(world: &mut World) {
+        crate::mapgen::generate_map(world)
     }
 }
 

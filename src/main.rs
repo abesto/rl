@@ -10,10 +10,12 @@ mod systems;
 mod ui;
 
 use crate::components::position::PreviousPosition;
+use crate::map::Map;
 use components::*;
 use ui::UIState;
 
 fn main() {
+    let mut world = World::new();
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
@@ -23,7 +25,8 @@ fn main() {
         .with_thread_local(RenderSystem)
         .build();
 
-    let mut world = World::new();
+    // Wire it all up
+    dispatcher.setup(&mut world.res);
 
     // Initialize UI state
     let ui_config = ui::UIConfig::new();
@@ -32,14 +35,11 @@ fn main() {
     world.add_resource(ui::init(ui_config));
 
     // Set up the map
-    let map = map::Map::new_random();
-    let fov_map = systems::fov::new_fov_map(&map.tiles);
-    let spawn_point = map.spawn_point.clone();
-    world.add_resource(map);
+    map::Map::new_random(&mut world);
+    let map = || world.read_resource::<Map>();
+    let fov_map = systems::fov::new_fov_map(&map().tiles);
+    let spawn_point = map().spawn_point.clone();
     world.add_resource(fov_map);
-
-    // Wire it all up
-    dispatcher.setup(&mut world.res);
 
     // Create player ;)
     world
@@ -52,20 +52,6 @@ fn main() {
         })
         .with(Player)
         .with(PreviousPosition { x: -1, y: -1 })
-        .build();
-
-    // And an NPC
-    world
-        .create_entity()
-        .with(Position {
-            x: width / 2 - 5,
-            y: height / 2,
-        })
-        .with(Velocity::new())
-        .with(Visual {
-            char: '@',
-            color: colors::YELLOW,
-        })
         .build();
 
     // And start the game
