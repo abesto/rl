@@ -1,7 +1,6 @@
 use std::ops::Index;
 
-use crate::components::{BlocksMovement, Position};
-use shred::Resource;
+use crate::components::{Collider, Position};
 use specs::join::JoinIter;
 use specs::{ReadStorage, World};
 
@@ -65,7 +64,7 @@ impl Map {
     pub fn is_blocked(
         &self,
         pos: &Position,
-        join: JoinIter<(&ReadStorage<Position>, &ReadStorage<BlocksMovement>)>,
+        join: JoinIter<(&ReadStorage<Position>, &ReadStorage<Collider>)>,
     ) -> bool {
         // First check for walls
         if self[pos].blocked {

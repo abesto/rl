@@ -67,8 +67,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
         // by something. This is hella convoluted, but at least it's both correct, and works.
         {
             use specs::Join;
-            let storage =
-                world.system_data::<(ReadStorage<Position>, ReadStorage<BlocksMovement>)>();
+            let storage = world.system_data::<(ReadStorage<Position>, ReadStorage<Collider>)>();
             let joinable_storage = (&storage.0, &storage.1);
             if map.is_blocked(&position, joinable_storage.join()) {
                 continue;
@@ -85,7 +84,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
                 })
-                .with(BlocksMovement)
+                .with(Collider)
                 .with(Name::new("orc"))
                 .with(Alive(true))
                 .build();
@@ -97,7 +96,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     char: 'T',
                     color: colors::DARKER_GREEN,
                 })
-                .with(BlocksMovement)
+                .with(Collider)
                 .with(Name::new("troll"))
                 .with(Alive(true))
                 .build();

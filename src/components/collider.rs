@@ -3,4 +3,4 @@ use specs_derive::Component;
 
 #[derive(Default, Component)]
 #[storage(NullStorage)]
-pub struct BlocksMovement;
+pub struct Collider;

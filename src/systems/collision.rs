@@ -1,7 +1,7 @@
 use shred_derive::SystemData;
 use specs::prelude::*;
 
-use crate::components::{BlocksMovement, Position, Velocity};
+use crate::components::{Collider, Position, Velocity};
 use crate::map::Map;
 
 pub struct CollisionSystem;
@@ -12,7 +12,7 @@ pub struct CollisionSystemData<'a> {
     velocity: WriteStorage<'a, Velocity>,
 
     collider_position: ReadStorage<'a, Position>,
-    collider: ReadStorage<'a, BlocksMovement>,
+    collider: ReadStorage<'a, Collider>,
 
     map: ReadExpect<'a, Map>,
 }
