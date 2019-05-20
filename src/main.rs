@@ -30,6 +30,8 @@ fn main() {
         .build();
 
     // Wire it all up
+    world.register::<Alive>();
+    world.register::<Name>();
     dispatcher.setup(&mut world.res);
 
     // Initialize UI state
@@ -53,7 +55,9 @@ fn main() {
             color: colors::WHITE,
         })
         .with(Player)
+        .with(Name::new("player"))
         .with(PreviousPosition { x: -1, y: -1 })
+        .with(Alive(true))
         .build();
 
     // And start the game

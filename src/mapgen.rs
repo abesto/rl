@@ -5,7 +5,7 @@ use specs::world::Builder;
 use specs::World;
 use tcod::colors;
 
-use crate::components::{BlocksMovement, Position, Visual};
+use crate::components::*;
 use crate::map::*;
 
 const ROOM_MAX_SIZE: i32 = 10;
@@ -73,6 +73,8 @@ fn place_objects(room: Rect, world: &mut World) {
                     color: colors::DESATURATED_GREEN,
                 })
                 .with(BlocksMovement)
+                .with(Name::new("orc"))
+                .with(Alive(true))
                 .build();
         } else {
             world
@@ -83,19 +85,21 @@ fn place_objects(room: Rect, world: &mut World) {
                     color: colors::DARKER_GREEN,
                 })
                 .with(BlocksMovement)
+                .with(Name::new("troll"))
+                .with(Alive(true))
                 .build();
         };
     }
 }
 
 pub fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Tiles) {
-    for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
+    for x in cmp::min(x1, x2)..=cmp::max(x1, x2) {
         map[x as usize][y as usize] = Tile::floor();
     }
 }
 
 pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Tiles) {
-    for y in cmp::min(y1, y2)..(cmp::max(y1, y2) + 1) {
+    for y in cmp::min(y1, y2)..=cmp::max(y1, y2) {
         map[x as usize][y as usize] = Tile::floor();
     }
 }
