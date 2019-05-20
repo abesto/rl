@@ -5,7 +5,7 @@ use specs::world::Builder;
 use specs::World;
 use tcod::colors;
 
-use crate::components::{Position, Visual};
+use crate::components::{BlocksMovement, Position, Visual};
 use crate::map::*;
 
 const ROOM_MAX_SIZE: i32 = 10;
@@ -72,6 +72,7 @@ fn place_objects(room: Rect, world: &mut World) {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
                 })
+                .with(BlocksMovement)
                 .build();
         } else {
             world
@@ -81,6 +82,7 @@ fn place_objects(room: Rect, world: &mut World) {
                     char: 'T',
                     color: colors::DARKER_GREEN,
                 })
+                .with(BlocksMovement)
                 .build();
         };
     }

@@ -9,7 +9,6 @@ mod mapgen;
 mod systems;
 mod ui;
 
-use crate::components::position::PreviousPosition;
 use crate::map::Map;
 use components::*;
 use ui::UIState;
@@ -19,7 +18,12 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
-        .with(MovementSystem, "movement", &["input", "location_history"])
+        .with(CollisionSystem, "collision", &["input"])
+        .with(
+            MovementSystem,
+            "movement",
+            &["collision", "location_history"],
+        )
         .with(FovSystem, "fov", &["movement"])
         .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
@@ -30,8 +34,6 @@ fn main() {
 
     // Initialize UI state
     let ui_config = ui::UIConfig::new();
-    let width = ui_config.width;
-    let height = ui_config.height;
     world.add_resource(ui::init(ui_config));
 
     // Set up the map

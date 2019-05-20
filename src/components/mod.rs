@@ -1,10 +1,11 @@
-pub mod player;
-pub mod position;
+mod blocks_movement;
+mod player;
+mod position;
 pub mod velocity;
-pub mod visual;
+mod visual;
 
+pub use blocks_movement::BlocksMovement;
 pub use player::Player;
 pub use position::{Position, PreviousPosition};
 pub use velocity::Velocity;
 pub use visual::Visual;
-
