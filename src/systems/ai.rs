@@ -53,7 +53,7 @@ impl<'a> System<'a> for AISystem {
                 if fov_map.is_in_fov(monster_position.x, monster_position.y) {
                     let velocity = monster_position.move_towards(player_position);
                     let candidate = monster_position + &velocity;
-                    if !will_move_to.contains(&candidate) {
+                    if player_position == &candidate || !will_move_to.contains(&candidate) {
                         *monster_velocity = velocity;
                         will_move_to.insert(candidate);
                     }
