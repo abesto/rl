@@ -1,3 +1,5 @@
+mod ai;
+mod attack;
 mod collision;
 mod fog_of_war;
 pub mod fov;
@@ -6,6 +8,8 @@ mod location_history;
 mod movement;
 mod render;
 
+pub use ai::AISystem;
+pub use attack::AttackSystem;
 pub use collision::CollisionSystem;
 pub use fog_of_war::FogOfWarSystem;
 pub use fov::FovSystem;

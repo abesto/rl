@@ -10,27 +10,42 @@ mod systems;
 mod ui;
 
 use crate::map::Map;
-use crate::ui::PlayerAction;
 use components::*;
 use ui::UIState;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PlayerAction {
+    TookTurn,
+    DidntTakeTurn,
+    Exit,
+}
+
+impl Default for PlayerAction {
+    fn default() -> PlayerAction {
+        PlayerAction::DidntTakeTurn
+    }
+}
 
 fn main() {
     let mut world = World::new();
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
-        .with(CollisionSystem, "collision", &["input"])
+        .with(AttackSystem, "attack", &["input"])
+        .with(CollisionSystem, "collision", &["attack"])
         .with(
             MovementSystem,
             "movement",
             &["collision", "location_history"],
         )
+        .with(AISystem, "ai", &["movement"])
         .with(FovSystem, "fov", &["movement"])
         .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
         .build();
 
     // Wire it all up
+    world.add_resource(PlayerAction::default());
     world.register::<Alive>();
     world.register::<Name>();
     dispatcher.setup(&mut world.res);
@@ -63,7 +78,7 @@ fn main() {
 
     // And start the game
     dispatcher.dispatch(&world.res);
-    while world.read_resource::<UIState>().action != PlayerAction::Exit {
+    while *world.read_resource::<PlayerAction>() != PlayerAction::Exit {
         world.maintain();
         *world.write_resource::<Option<Key>>() = Some(
             world

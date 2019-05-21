@@ -5,8 +5,9 @@ use tcod::input::KeyCode::*;
 
 use crate::components::velocity::Heading::*;
 use crate::components::{Alive, Player, Velocity};
-use crate::ui::PlayerAction::*;
 use crate::ui::UIState;
+use crate::PlayerAction;
+use crate::PlayerAction::*;
 
 #[derive(SystemData)]
 pub struct InputSystemData<'a> {
@@ -16,6 +17,7 @@ pub struct InputSystemData<'a> {
     alive: ReadStorage<'a, Alive>,
 
     ui: WriteExpect<'a, UIState>,
+    action: WriteExpect<'a, PlayerAction>,
 }
 
 pub struct InputSystem;
@@ -26,7 +28,7 @@ impl<'a> System<'a> for InputSystem {
     fn run(&mut self, mut data: Self::SystemData) {
         for (vel, alive, _) in (&mut data.velocity, &data.alive, &data.player).join() {
             if let Some(k) = *data.key {
-                data.ui.action = match (k, alive.0) {
+                *data.action = match (k, alive.0) {
                     (
                         Key {
                             code: Enter,
