@@ -10,6 +10,7 @@ mod systems;
 mod ui;
 
 use crate::map::Map;
+use crate::ui::PlayerAction;
 use components::*;
 use ui::UIState;
 
@@ -62,7 +63,7 @@ fn main() {
 
     // And start the game
     dispatcher.dispatch(&world.res);
-    while !world.read_resource::<UIState>().exit_requested {
+    while world.read_resource::<UIState>().action != PlayerAction::Exit {
         world.maintain();
         *world.write_resource::<Option<Key>>() = Some(
             world

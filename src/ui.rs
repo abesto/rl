@@ -1,3 +1,4 @@
+use crate::ui::PlayerAction::DidntTakeTurn;
 use std::sync::{Arc, Mutex};
 use tcod::console::*;
 
@@ -16,11 +17,18 @@ pub struct UIConsoles {
     pub map: Arc<Mutex<Offscreen>>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PlayerAction {
+    TookTurn,
+    DidntTakeTurn,
+    Exit,
+}
+
 pub struct UIState {
     pub config: UIConfig,
     pub consoles: UIConsoles,
 
-    pub exit_requested: bool,
+    pub action: PlayerAction,
 }
 
 impl UIConfig {
@@ -59,7 +67,7 @@ pub fn init(config: UIConfig) -> UIState {
 
     UIState {
         config,
-        exit_requested: false,
+        action: DidntTakeTurn,
         consoles: UIConsoles {
             root,
             map: Arc::new(Mutex::new(Offscreen::new(
