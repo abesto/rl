@@ -31,15 +31,21 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
-        .with(AttackSystem, "attack", &["input"])
-        .with(CollisionSystem, "collision", &["attack"])
+        .with_barrier() // Player turn
+        .with(AttackSystem, "player_attack", &["input"])
+        .with(CollisionSystem, "player_collision", &["player_attack"])
         .with(
             MovementSystem,
-            "movement",
-            &["collision", "location_history"],
+            "player_movement",
+            &["player_collision", "location_history"],
         )
-        .with(AISystem, "ai", &["movement"])
-        .with(FovSystem, "fov", &["movement"])
+        .with(FovSystem, "fov", &["player_movement"])
+        .with_barrier() // Monster turn
+        .with(AISystem, "ai", &[])
+        .with(AttackSystem, "monster_attack", &["ai"])
+        .with(CollisionSystem, "monster_collision", &["monster_attack"])
+        .with(MovementSystem, "monster_movement", &["monster_collision"])
+        .with_barrier() // Rendering
         .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
         .build();

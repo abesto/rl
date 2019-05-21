@@ -8,10 +8,8 @@ pub struct CollisionSystem;
 
 #[derive(SystemData)]
 pub struct CollisionSystemData<'a> {
-    mover_position: ReadStorage<'a, Position>,
+    position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
-
-    collider_position: ReadStorage<'a, Position>,
     collider: ReadStorage<'a, Collider>,
 
     map: ReadExpect<'a, Map>,
@@ -23,11 +21,14 @@ impl<'a> System<'a> for CollisionSystem {
     fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
 
-        for (pos, mut vel) in (&data.mover_position, &mut data.velocity).join() {
+        for (pos, mut vel) in (&data.position, &mut data.velocity).join() {
+            if vel.magnitude == 0 {
+                continue;
+            }
             let candidate = &*pos + &*vel;
             let blocked = data
                 .map
-                .is_blocked(&candidate, (&data.collider_position, &data.collider).join());
+                .is_blocked(&candidate, (&data.position, &data.collider).join());
             // If something blocks the movement, reject the whole thing
             if blocked {
                 vel.magnitude = 0;

@@ -80,6 +80,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
             world
                 .create_entity()
                 .with(position)
+                .with(Velocity::new())
                 .with(Visual {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
@@ -93,12 +94,13 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     defense: 0,
                     power: 3,
                 })
-                .with(Ai)
+                .with(Ai::default())
                 .build();
         } else {
             world
                 .create_entity()
                 .with(position)
+                .with(Velocity::new())
                 .with(Visual {
                     char: 'T',
                     color: colors::DARKER_GREEN,
@@ -112,7 +114,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     defense: 1,
                     power: 4,
                 })
-                .with(Ai)
+                .with(Ai::default())
                 .build();
         };
     }

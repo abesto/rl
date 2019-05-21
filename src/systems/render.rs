@@ -2,12 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use shred_derive::SystemData;
 use specs::prelude::*;
-use tcod::colors;
 use tcod::colors::*;
 use tcod::console::*;
 use tcod::map::Map as FovMap;
 
-use crate::components::{Position, PreviousPosition, Visual};
+use crate::components::{Position, Visual};
 use crate::map::{Map, MAP_HEIGHT, MAP_WIDTH};
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
@@ -31,8 +30,6 @@ pub struct RenderSystem;
 
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
-    entity: Entities<'a>,
-    prev_position: ReadStorage<'a, PreviousPosition>,
     position: ReadStorage<'a, Position>,
     visual: ReadStorage<'a, Visual>,
 
@@ -45,26 +42,6 @@ impl RenderSystem {
     fn draw_object(offscreen: &mut Offscreen, position: &Position, visual: &Visual) {
         offscreen.set_default_foreground(visual.color);
         offscreen.put_char(position.x, position.y, visual.char, BackgroundFlag::None);
-    }
-
-    fn draw_movement_shadow(
-        offscreen: &mut Offscreen,
-        prev_pos: &PreviousPosition,
-        visual: &Visual,
-    ) {
-        if prev_pos.x >= 0 && prev_pos.y >= 0 {
-            Self::draw_object(
-                offscreen,
-                &Position {
-                    x: prev_pos.x,
-                    y: prev_pos.y,
-                },
-                &Visual {
-                    char: visual.char,
-                    color: colors::DARK_GREY,
-                },
-            );
-        }
     }
 
     fn draw_fov(offscreen: &mut Offscreen, map: &Map, fov_map: &FovMap) {
@@ -110,13 +87,9 @@ impl<'a> System<'a> for RenderSystem {
         map.clear();
 
         Self::draw_fov(map, &data.map, fov_map);
-        for (entity, position, visual) in (&data.entity, &data.position, &data.visual).join() {
+        for (position, visual) in (&data.position, &data.visual).join() {
             if !fov_map.is_in_fov(position.x, position.y) {
                 continue;
-            }
-            // Draw movement shadow for debugging
-            if let Some(prev_pos) = data.prev_position.get(entity) {
-                Self::draw_movement_shadow(map, prev_pos, visual);
             }
             // Draw the object proper
             Self::draw_object(map, position, visual);

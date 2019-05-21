@@ -5,7 +5,7 @@ use specs_derive::Component;
 
 // Intentionally not implemented as a vector; that makes things more complex, it can come later
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Heading {
     North,
     East,
@@ -13,7 +13,13 @@ pub enum Heading {
     West,
 }
 
-#[derive(Component, Debug)]
+impl Default for Heading {
+    fn default() -> Heading {
+        Heading::North
+    }
+}
+
+#[derive(Component, Debug, PartialEq, Clone, Default)]
 #[storage(VecStorage)]
 pub struct Velocity {
     pub heading: Heading,
@@ -55,6 +61,39 @@ impl From<Heading> for Velocity {
         Velocity {
             heading,
             magnitude: 1,
+        }
+    }
+}
+
+impl From<(i32, i32)> for Velocity {
+    fn from((x, y): (i32, i32)) -> Velocity {
+        if x != 0 && y != 0 {
+            panic!("Velocity::from::<(i32,i32)> supports only diagonal movement");
+        }
+        if x < 0 {
+            return Velocity {
+                heading: Heading::West,
+                magnitude: -x as usize,
+            };
+        } else if x > 0 {
+            return Velocity {
+                heading: Heading::East,
+                magnitude: x as usize,
+            };
+        } else if y < 0 {
+            return Velocity {
+                heading: Heading::North,
+                magnitude: -y as usize,
+            };
+        } else if y > 0 {
+            return Velocity {
+                heading: Heading::South,
+                magnitude: y as usize,
+            };
+        }
+        Velocity {
+            heading: Heading::North,
+            magnitude: 0,
         }
     }
 }

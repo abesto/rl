@@ -1,10 +1,12 @@
 use std::ops::Add;
 
+use rand::Rng;
+
 use crate::components::Velocity;
 use specs::{Component, VecStorage};
 use specs_derive::Component;
 
-#[derive(Component, Debug, Clone, PartialEq)]
+#[derive(Component, Debug, Clone, PartialEq, Eq, Hash)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: i32,
@@ -33,6 +35,37 @@ impl Add<&Velocity> for &Position {
             x: self.x + other.x,
             y: self.y + other.y,
         }
+    }
+}
+
+impl Position {
+    pub fn move_towards(&self, target: &Position) -> Velocity {
+        // vector from this object to the target, and distance
+        let dx = target.x - self.x;
+        let dy = target.y - self.y;
+        let distance = ((dx.pow(2) + dy.pow(2)) as f32).sqrt();
+
+        // normalize it to length 1 (preserving direction), then round it and
+        // convert to integer so the movement is restricted to the map grid
+        let mut dx = (dx as f32 / distance).round() as i32;
+        let mut dy = (dy as f32 / distance).round() as i32;
+
+        // the player cannot move diagonally, so it's only fair the monsters can't either
+        if dx != 0 && dy != 0 {
+            if rand::thread_rng().gen_bool(0.5) {
+                dy = 0;
+            } else {
+                dx = 0;
+            }
+        }
+
+        Velocity::from((dx, dy))
+    }
+
+    pub fn distance_to(&self, other: &Position) -> f32 {
+        let dx = other.x - self.x;
+        let dy = other.y - self.y;
+        ((dx.pow(2) + dy.pow(2)) as f32).sqrt()
     }
 }
 
