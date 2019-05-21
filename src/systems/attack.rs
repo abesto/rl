@@ -14,6 +14,8 @@ pub struct AttackSystemData<'a> {
     target_position: ReadStorage<'a, Position>,
     alive: ReadStorage<'a, Alive>,
     name: ReadStorage<'a, Name>,
+
+    fighter: ReadStorage<'a, Fighter>,
 }
 
 impl<'a> System<'a> for AttackSystem {
@@ -22,12 +24,20 @@ impl<'a> System<'a> for AttackSystem {
     fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
 
-        for (pos, mut vel, _) in (&data.player_position, &mut data.velocity, &data.player).join() {
+        for (pos, mut vel, _, _) in (
+            &data.player_position,
+            &mut data.velocity,
+            &data.fighter,
+            &data.player,
+        )
+            .join()
+        {
             let candidate = &*pos + &*vel;
-            for (target_pos, alive, name, _) in (
+            for (target_pos, alive, name, _, _) in (
                 &data.target_position,
                 &data.alive,
                 &data.name,
+                &data.fighter,
                 !&data.player,
             )
                 .join()

@@ -74,6 +74,12 @@ fn main() {
         .with(Name::new("player"))
         .with(PreviousPosition { x: -1, y: -1 })
         .with(Alive(true))
+        .with(Fighter {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
+        })
         .build();
 
     // And start the game

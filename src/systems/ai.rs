@@ -7,6 +7,7 @@ use crate::PlayerAction;
 #[derive(SystemData)]
 pub struct AISystemData<'a> {
     player: ReadStorage<'a, Player>,
+    ai: ReadStorage<'a, Ai>,
     action: ReadExpect<'a, PlayerAction>,
     alive: ReadStorage<'a, Alive>,
     name: ReadStorage<'a, Name>,
@@ -28,8 +29,8 @@ impl<'a> System<'a> for AISystem {
         if *data.action == PlayerAction::DidntTakeTurn {
             return;
         }
-        // Run AI for anything that's alive and is not the player
-        for (alive, name, _) in (&data.alive, &data.name, !&data.player).join() {
+        // Run AI for anything that's AI-controlled and alive
+        for (alive, name, _) in (&data.alive, &data.name, &data.ai).join() {
             if alive.0 {
                 println!("The {} growls!", name.0);
             }
