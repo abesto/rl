@@ -40,6 +40,7 @@ fn main() {
             &["player_collision", "location_history"],
         )
         .with(FovSystem, "fov", &["player_movement"])
+        .with(MonsterDeathSystem, "monster_death", &["player_attack"])
         .with_barrier() // Monster turn
         .with(AISystem, "ai", &[])
         .with(AttackSystem, "monster_attack", &["ai"])

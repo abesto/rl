@@ -7,6 +7,7 @@ mod input;
 mod location_history;
 mod movement;
 mod player_death;
+mod monster_death;
 mod render;
 
 pub use ai::AISystem;
@@ -19,3 +20,4 @@ pub use location_history::LocationHistorySystem;
 pub use movement::MovementSystem;
 pub use player_death::PlayerDeathSystem;
 pub use render::RenderSystem;
+pub use monster_death::MonsterDeathSystem;
