@@ -6,7 +6,7 @@ use tcod::colors::*;
 use tcod::console::*;
 use tcod::map::Map as FovMap;
 
-use crate::components::{Position, Visual};
+use crate::components::*;
 use crate::map::{Map, MAP_HEIGHT, MAP_WIDTH};
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
@@ -30,6 +30,8 @@ pub struct RenderSystem;
 
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
+    living: ReadStorage<'a, Living>,
+    player: ReadStorage<'a, Player>,
     position: ReadStorage<'a, Position>,
     visual: ReadStorage<'a, Visual>,
 
@@ -64,6 +66,16 @@ impl RenderSystem {
             }
         }
     }
+
+    fn draw_hp(root: &mut Root, hp: i32, max_hp: i32) {
+        root.print_ex(
+            1,
+            root.height() - 2,
+            BackgroundFlag::None,
+            TextAlignment::Left,
+            format!("HP: {}/{} ", hp, max_hp),
+        );
+    }
 }
 
 impl<'a> System<'a> for RenderSystem {
@@ -93,6 +105,10 @@ impl<'a> System<'a> for RenderSystem {
             }
             // Draw the object proper
             Self::draw_object(map, position, visual);
+        }
+
+        if let Some((living, _)) = (&data.living, &data.player).join().next() {
+            Self::draw_hp(root, living.hp, living.max_hp);
         }
 
         blit(

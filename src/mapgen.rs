@@ -87,13 +87,13 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Collider)
                 .with(Name::new("orc"))
-                .with(Alive(true))
-                .with(Fighter {
+                .with(Living{
+                    alive: true,
                     max_hp: 10,
                     hp: 10,
                     defense: 0,
-                    power: 3,
                 })
+                .with(Power(3))
                 .with(Ai::default())
                 .build();
         } else {
@@ -107,13 +107,13 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Collider)
                 .with(Name::new("troll"))
-                .with(Alive(true))
-                .with(Fighter {
+                .with(Living {
+                    alive: true,
                     max_hp: 16,
                     hp: 16,
                     defense: 1,
-                    power: 4,
                 })
+                .with(Power(4))
                 .with(Ai::default())
                 .build();
         };

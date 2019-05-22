@@ -11,7 +11,7 @@ use crate::PlayerAction;
 #[derive(SystemData)]
 pub struct AISystemData<'a> {
     ai: ReadStorage<'a, Ai>,
-    alive: ReadStorage<'a, Alive>,
+    living: ReadStorage<'a, Living>,
     player: ReadStorage<'a, Player>,
 
     position: ReadStorage<'a, Position>,
@@ -39,30 +39,27 @@ impl<'a> System<'a> for AISystem {
         }
 
         // Let's find the player...
-        let (_, player_alive, player_position) = (&data.player, &data.alive, &data.position)
+        let (_, player_living, player_position) = (&data.player, &data.living, &data.position)
             .join()
             .next()
             .unwrap();
 
-        // Only run if the player is alive
-        if !player_alive.0 {
+        // Only run if the player is living
+        if !player_living.alive {
             return;
         }
 
-        // Run AI for anything that's AI-controlled and alive
-        for (monster_alive, monster_position, monster_velocity, _) in
-            (&data.alive, &data.position, &mut data.velocity, &data.ai).join()
+        // Run AI for anything that's AI-controlled and living
+        for (_, monster_position, monster_velocity, _) in
+            (&data.living, &data.position, &mut data.velocity, &data.ai)
+                .join()
+                .filter(|j| j.0.alive && fov_map.is_in_fov(j.1.x, j.1.y))
         {
-            if !monster_alive.0 {
-                continue;
-            }
-            if fov_map.is_in_fov(monster_position.x, monster_position.y) {
-                let velocity = monster_position.move_towards(player_position);
-                let candidate = monster_position + &velocity;
-                if player_position == &candidate || !will_move_to.contains(&candidate) {
-                    *monster_velocity = velocity;
-                    will_move_to.insert(candidate);
-                }
+            let velocity = monster_position.move_towards(player_position);
+            let candidate = monster_position + &velocity;
+            if player_position == &candidate || !will_move_to.contains(&candidate) {
+                *monster_velocity = velocity;
+                will_move_to.insert(candidate);
             }
         }
     }

@@ -52,7 +52,7 @@ fn main() {
 
     // Wire it all up
     world.add_resource(PlayerAction::default());
-    world.register::<Alive>();
+    world.register::<Living>();
     world.register::<Name>();
     dispatcher.setup(&mut world.res);
 
@@ -79,13 +79,13 @@ fn main() {
         .with(Player)
         .with(Name::new("player"))
         .with(PreviousPosition { x: -1, y: -1 })
-        .with(Alive(true))
-        .with(Fighter {
+        .with(Living {
+            alive: true,
             max_hp: 30,
             hp: 30,
             defense: 2,
-            power: 5,
         })
+        .with(Power(5))
         .build();
 
     // And start the game
