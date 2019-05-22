@@ -39,7 +39,7 @@ impl<'a> System<'a> for AttackSystem {
                         "{} attacks {} for {} hit points.",
                         attacker_name.0, target_name.0, damage
                     );
-                    target_living.take_damage(damage);
+                    target_living.hp -= damage;
                 } else {
                     println!(
                         "{} attacks {} but it has no effect!",

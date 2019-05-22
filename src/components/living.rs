@@ -9,11 +9,3 @@ pub struct Living {
     pub hp: i32,
     pub defense: i32,
 }
-
-impl Living {
-    pub fn take_damage(&mut self, damage: i32) {
-        if damage > 0 {
-            self.hp -= damage;
-        }
-    }
-}

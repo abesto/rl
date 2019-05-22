@@ -45,6 +45,7 @@ fn main() {
         .with(AttackSystem, "monster_attack", &["ai"])
         .with(CollisionSystem, "monster_collision", &["monster_attack"])
         .with(MovementSystem, "monster_movement", &["monster_collision"])
+        .with(PlayerDeathSystem, "player_death", &["monster_attack"])
         .with_barrier() // Rendering
         .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
