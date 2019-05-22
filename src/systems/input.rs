@@ -12,9 +12,10 @@ use crate::PlayerAction::*;
 #[derive(SystemData)]
 pub struct InputSystemData<'a> {
     key: Read<'a, Option<Key>>,
-    velocity: WriteStorage<'a, Velocity>,
-    player: ReadStorage<'a, Player>,
+
     alive: ReadStorage<'a, Alive>,
+    player: ReadStorage<'a, Player>,
+    velocity: WriteStorage<'a, Velocity>,
 
     ui: WriteExpect<'a, UIState>,
     action: WriteExpect<'a, PlayerAction>,

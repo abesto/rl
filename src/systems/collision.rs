@@ -8,9 +8,9 @@ pub struct CollisionSystem;
 
 #[derive(SystemData)]
 pub struct CollisionSystemData<'a> {
+    collider: ReadStorage<'a, Collider>,
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
-    collider: ReadStorage<'a, Collider>,
 
     map: ReadExpect<'a, Map>,
 }

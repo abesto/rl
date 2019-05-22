@@ -14,8 +14,8 @@ const TORCH_RADIUS: i32 = 10;
 #[derive(SystemData)]
 pub struct FovSystemData<'a> {
     player: ReadStorage<'a, Player>,
-    prev_position: ReadStorage<'a, PreviousPosition>,
     position: ReadStorage<'a, Position>,
+    prev_position: ReadStorage<'a, PreviousPosition>,
 
     fov_map: WriteExpect<'a, Arc<Mutex<FovMap>>>,
 }

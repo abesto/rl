@@ -10,15 +10,15 @@ use crate::PlayerAction;
 
 #[derive(SystemData)]
 pub struct AISystemData<'a> {
-    player: ReadStorage<'a, Player>,
     ai: ReadStorage<'a, Ai>,
     alive: ReadStorage<'a, Alive>,
+    player: ReadStorage<'a, Player>,
 
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
 
-    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
     action: ReadExpect<'a, PlayerAction>,
+    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
 }
 
 pub struct AISystem;
@@ -37,26 +37,31 @@ impl<'a> System<'a> for AISystem {
         if *data.action == PlayerAction::DidntTakeTurn {
             return;
         }
-        for (_, player_alive, player_position) in (&data.player, &data.alive, &data.position).join()
+
+        // Let's find the player...
+        let (_, player_alive, player_position) = (&data.player, &data.alive, &data.position)
+            .join()
+            .next()
+            .unwrap();
+
+        // Only run if the player is alive
+        if !player_alive.0 {
+            return;
+        }
+
+        // Run AI for anything that's AI-controlled and alive
+        for (monster_alive, monster_position, monster_velocity, _) in
+            (&data.alive, &data.position, &mut data.velocity, &data.ai).join()
         {
-            // Only run if the player is alive
-            if !player_alive.0 {
-                break;
+            if !monster_alive.0 {
+                continue;
             }
-            // Run AI for anything that's AI-controlled and alive
-            for (monster_alive, monster_position, monster_velocity, _) in
-                (&data.alive, &data.position, &mut data.velocity, &data.ai).join()
-            {
-                if !monster_alive.0 {
-                    continue;
-                }
-                if fov_map.is_in_fov(monster_position.x, monster_position.y) {
-                    let velocity = monster_position.move_towards(player_position);
-                    let candidate = monster_position + &velocity;
-                    if player_position == &candidate || !will_move_to.contains(&candidate) {
-                        *monster_velocity = velocity;
-                        will_move_to.insert(candidate);
-                    }
+            if fov_map.is_in_fov(monster_position.x, monster_position.y) {
+                let velocity = monster_position.move_towards(player_position);
+                let candidate = monster_position + &velocity;
+                if player_position == &candidate || !will_move_to.contains(&candidate) {
+                    *monster_velocity = velocity;
+                    will_move_to.insert(candidate);
                 }
             }
         }
