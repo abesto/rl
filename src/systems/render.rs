@@ -34,6 +34,8 @@ pub struct RenderSystemData<'a> {
     player: ReadStorage<'a, Player>,
     position: ReadStorage<'a, Position>,
     visual: ReadStorage<'a, Visual>,
+    collider: ReadStorage<'a, Collider>,
+    entities: Entities<'a>,
 
     map: ReadExpect<'a, Map>,
     fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
@@ -84,33 +86,50 @@ impl<'a> System<'a> for RenderSystem {
     fn run(&mut self, mut data: Self::SystemData) {
         use specs::Join;
 
+        // Get the FOV map
+        let fov_map_mutex = data.fov_map.clone();
+        let fov_map = &*fov_map_mutex.lock().unwrap();
+
+        // Get the items we'll be rendering
+        let mut items = (&data.position, &data.visual, &data.entities)
+            .join()
+            .filter(|j| fov_map.is_in_fov(j.0.x, j.0.y))
+            .collect::<Vec<_>>();
+        // Things with a collider need to be drawn on top of things without a collider
+        // ie. the player is drawn over a corpse
+        items.sort_by(|&a, &b| {
+            data.collider
+                .get(a.2)
+                .is_some()
+                .cmp(&data.collider.get(b.2).is_some())
+        });
+
+        // Prepare for the new frame
         let ui = &mut *data.ui;
         let root = &mut ui.consoles.root;
+        ui.config.apply(root);
 
         let map_mutex = ui.consoles.map.clone();
         let map = &mut *map_mutex.lock().unwrap();
 
-        let fov_map_mutex = data.fov_map.clone();
-        let fov_map = &*fov_map_mutex.lock().unwrap();
-
-        ui.config.apply(root);
-
+        // Clear the screen first
         map.set_default_foreground(WHITE);
         map.clear();
 
+        // Walls and stuff
         Self::draw_fov(map, &data.map, fov_map);
-        for (position, visual) in (&data.position, &data.visual).join() {
-            if !fov_map.is_in_fov(position.x, position.y) {
-                continue;
-            }
-            // Draw the object proper
+
+        // Monsters and stuff
+        for (position, visual, _) in items {
             Self::draw_object(map, position, visual);
         }
 
+        // Some GUI
         if let Some((living, _)) = (&data.living, &data.player).join().next() {
             Self::draw_hp(root, living.hp, living.max_hp);
         }
 
+        // Put it all together
         blit(
             &*map,
             (0, 0),

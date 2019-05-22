@@ -78,6 +78,7 @@ fn main() {
             char: '@',
             color: colors::WHITE,
         })
+        .with(Collider)
         .with(Player)
         .with(Name::new("player"))
         .with(PreviousPosition { x: -1, y: -1 })
