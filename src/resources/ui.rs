@@ -9,6 +9,7 @@ pub const SCREEN_WIDTH: i32 = 80;
 pub const SCREEN_HEIGHT: i32 = MAP_HEIGHT + PANEL_HEIGHT;
 pub const LIMIT_FPS: i32 = 20;
 pub const PANEL_Y: i32 = SCREEN_HEIGHT - PANEL_HEIGHT;
+pub const INVENTORY_WIDTH: i32 = 50;
 
 pub struct UIConfig {
     pub width: i32,

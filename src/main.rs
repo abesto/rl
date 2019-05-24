@@ -11,6 +11,7 @@ mod systems;
 
 use crate::components::*;
 use crate::resources::map::Map;
+use crate::resources::menu::Menu;
 use crate::resources::messages::Messages;
 use crate::resources::ui::{self, UIConfig, PANEL_HEIGHT};
 
@@ -71,6 +72,9 @@ fn main() {
         colors::RED,
     );
     world.add_resource(messages);
+
+    // No menu is open when we start
+    world.add_resource::<Option<Menu>>(None);
 
     // Set up the map
     Map::new_random(&mut world);

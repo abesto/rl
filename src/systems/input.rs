@@ -6,8 +6,9 @@ use tcod::input::KeyCode::*;
 
 use crate::components::velocity::Heading::*;
 use crate::components::*;
+use crate::resources::menu::{Menu, MenuKind};
 use crate::resources::messages::Messages;
-use crate::resources::ui::UIState;
+use crate::resources::ui::{UIState, INVENTORY_WIDTH};
 use crate::PlayerAction;
 use crate::PlayerAction::*;
 use shred::PanicHandler;
@@ -26,6 +27,7 @@ pub struct InputSystemData<'a> {
 
     entity: Entities<'a>,
 
+    menu: WriteExpect<'a, Option<Menu>>,
     ui: WriteExpect<'a, UIState>,
     action: WriteExpect<'a, PlayerAction>,
     messages: WriteExpect<'a, Messages>,
@@ -33,10 +35,8 @@ pub struct InputSystemData<'a> {
 
 pub struct InputSystem;
 
-impl<'a> System<'a> for InputSystem {
-    type SystemData = InputSystemData<'a>;
-
-    fn run(&mut self, mut data: Self::SystemData) {
+impl InputSystem {
+    fn handle_game_input(mut data: InputSystemData) {
         if let Some((vel, living, inventory, _)) = (
             &mut data.velocity,
             &data.living,
@@ -80,6 +80,18 @@ impl<'a> System<'a> for InputSystem {
                     (
                         Key {
                             code: Char,
+                            printable: 'i',
+                            ..
+                        },
+                        true,
+                    ) => {
+                        // how a menu with each item of the inventory as an option
+                        *data.menu = Some(inventory_menu(&inventory, data.name));
+                        DidntTakeTurn
+                    }
+                    (
+                        Key {
+                            code: Char,
                             printable: 'g',
                             ..
                         },
@@ -92,7 +104,13 @@ impl<'a> System<'a> for InputSystem {
                                 .join()
                                 .find(|j| j.2 == player_pos)
                         {
-                            pick_item_up(item, name, data.position, inventory, data.messages);
+                            pick_item_up(
+                                item,
+                                name,
+                                &mut data.position,
+                                inventory,
+                                &mut data.messages,
+                            );
                         }
                         DidntTakeTurn
                     }
@@ -101,8 +119,27 @@ impl<'a> System<'a> for InputSystem {
             } else {
                 DidntTakeTurn
             };
+        }
 
-            *data.key = None;
+        *data.key = None;
+    }
+
+    fn handle_menu_input(mut data: InputSystemData) {
+        if let Some(Key { code: Char, .. }) = *data.key {
+            *data.menu = None;
+        }
+        *data.key = None;
+    }
+}
+
+impl<'a> System<'a> for InputSystem {
+    type SystemData = InputSystemData<'a>;
+
+    fn run(&mut self, mut data: Self::SystemData) {
+        if data.menu.is_some() {
+            InputSystem::handle_menu_input(data);
+        } else {
+            InputSystem::handle_game_input(data);
         }
     }
 }
@@ -110,9 +147,9 @@ impl<'a> System<'a> for InputSystem {
 fn pick_item_up(
     item: Entity,
     item_name: &Name,
-    mut position: WriteStorage<Position>,
+    position: &mut WriteStorage<Position>,
     inventory: &mut Inventory,
-    mut messages: Write<Messages, PanicHandler>,
+    messages: &mut Write<Messages, PanicHandler>,
 ) {
     if inventory.0.len() >= 26 {
         messages.push(
@@ -123,5 +160,24 @@ fn pick_item_up(
         position.remove(item);
         messages.push(format!("You picked up a {}!", item_name.0), colors::GREEN);
         inventory.0.push(item);
+    }
+}
+
+fn inventory_menu(inventory: &Inventory, name: ReadStorage<Name>) -> Menu {
+    let options: Vec<String> = if inventory.0.len() == 0 {
+        vec!["Inventory is empty.".to_string()]
+    } else {
+        inventory
+            .0
+            .iter()
+            .map(|item| name.get(*item).unwrap().0.clone())
+            .collect()
+    };
+
+    Menu {
+        header: "Press the key next to an item to use it, or any other to cancel.\n".to_string(),
+        width: INVENTORY_WIDTH,
+        items: options,
+        kind: MenuKind::Inventory,
     }
 }

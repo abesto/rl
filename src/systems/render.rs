@@ -9,8 +9,11 @@ use tcod::map::Map as FovMap;
 
 use crate::components::*;
 use crate::resources::map::{Map, MAP_HEIGHT, MAP_WIDTH};
+use crate::resources::menu::Menu;
 use crate::resources::messages::Messages;
-use crate::resources::ui::{UIState, BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_WIDTH};
+use crate::resources::ui::{
+    UIState, BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_HEIGHT, SCREEN_WIDTH,
+};
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
 const COLOR_DARK_GROUND: Color = Color {
@@ -51,6 +54,7 @@ pub struct RenderSystemData<'a> {
     messages: ReadExpect<'a, Messages>,
     mouse: ReadExpect<'a, Mouse>,
     ui: WriteExpect<'a, UIState>,
+    menu: ReadExpect<'a, Option<Menu>>,
 }
 
 impl RenderSystem {
@@ -151,6 +155,61 @@ impl RenderSystem {
             names.join(", "),
         );
     }
+
+    fn render_menu(root: &mut Root, menu: &Menu) {
+        assert!(
+            menu.items.len() <= 26,
+            "Cannot have a menu with more than 26 options."
+        );
+
+        // calculate total height for the header (after auto-wrap) and one line per option
+        let header_height = root.get_height_rect(0, 0, menu.width, SCREEN_HEIGHT, &menu.header);
+        let height = menu.items.len() as i32 + header_height;
+
+        // create an off-screen console that represents the menu's window
+        let mut window = Offscreen::new(menu.width, height);
+
+        // print the header, with auto-wrap
+        window.set_default_foreground(WHITE);
+        window.print_rect_ex(
+            0,
+            0,
+            menu.width,
+            height,
+            BackgroundFlag::None,
+            TextAlignment::Left,
+            &menu.header,
+        );
+
+        // print all the options
+        for (index, option_text) in menu.items.iter().enumerate() {
+            let menu_letter = (b'a' + index as u8) as char;
+            let text = format!("({}) {}", menu_letter, option_text);
+            window.print_ex(
+                0,
+                header_height + index as i32,
+                BackgroundFlag::None,
+                TextAlignment::Left,
+                text,
+            );
+        }
+
+        // blit the contents of "window" to the root console
+        let x = SCREEN_WIDTH / 2 - menu.width / 2;
+        let y = SCREEN_HEIGHT / 2 - height / 2;
+        tcod::console::blit(
+            &mut window,
+            (0, 0),
+            (menu.width, height),
+            root,
+            (x, y),
+            1.0,
+            0.7,
+        );
+
+        // present the root console to the player and wait for a key-press
+        root.flush();
+    }
 }
 
 impl<'a> System<'a> for RenderSystem {
@@ -238,6 +297,11 @@ impl<'a> System<'a> for RenderSystem {
             1.0,
             1.0,
         );
+
+        // And now the menu, if we have one
+        if let Some(menu) = &*data.menu {
+            Self::render_menu(root, &menu);
+        }
 
         root.flush();
     }
