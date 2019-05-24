@@ -5,7 +5,7 @@ use specs::join::JoinIter;
 use specs::{ReadStorage, World};
 
 pub const MAP_WIDTH: i32 = 80;
-pub const MAP_HEIGHT: i32 = 45;
+pub const MAP_HEIGHT: i32 = 43;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Tile {

@@ -10,8 +10,8 @@ mod systems;
 mod ui;
 
 use crate::map::Map;
+use crate::ui::UIState;
 use components::*;
-use ui::UIState;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {
@@ -60,7 +60,8 @@ fn main() {
 
     // Initialize UI state
     let ui_config = ui::UIConfig::new();
-    world.add_resource(ui::init(ui_config));
+    let ui_state = ui::init(ui_config);
+    world.add_resource(ui_state);
 
     // Set up the map
     map::Map::new_random(&mut world);
@@ -95,13 +96,12 @@ fn main() {
     dispatcher.dispatch(&world.res);
     while *world.read_resource::<PlayerAction>() != PlayerAction::Exit {
         world.maintain();
-        *world.write_resource::<Option<Key>>() = Some(
-            world
-                .write_resource::<UIState>()
-                .consoles
-                .root
-                .wait_for_keypress(true),
-        );
+        {
+            let ui_state = world.read_resource::<UIState>();
+            let consoles_mutex = ui_state.consoles.clone();
+            let consoles = &mut *consoles_mutex.lock().unwrap();
+            *world.write_resource::<Option<Key>>() = Some(consoles.root.wait_for_keypress(true));
+        }
         dispatcher.dispatch(&world.res);
     }
 }

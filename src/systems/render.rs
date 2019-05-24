@@ -8,6 +8,7 @@ use tcod::map::Map as FovMap;
 
 use crate::components::*;
 use crate::map::{Map, MAP_HEIGHT, MAP_WIDTH};
+use crate::ui::{BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_WIDTH};
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
 const COLOR_DARK_GROUND: Color = Color {
@@ -69,13 +70,60 @@ impl RenderSystem {
         }
     }
 
-    fn draw_hp(root: &mut Root, hp: i32, max_hp: i32) {
-        root.print_ex(
-            1,
-            root.height() - 2,
+    fn draw_hp(root: &mut Root, panel: &mut Offscreen, hp: i32, max_hp: i32) {
+        // prepare to render the GUI panel
+        panel.set_default_background(BLACK);
+        panel.clear();
+
+        // show the player's stats
+        Self::render_bar(
+            panel, 1, 1, BAR_WIDTH, "HP", hp, max_hp, LIGHT_RED, DARKER_RED,
+        );
+
+        // blit the contents of `panel` to the root console
+        blit(
+            panel,
+            (0, 0),
+            (SCREEN_WIDTH, PANEL_HEIGHT),
+            root,
+            (0, PANEL_Y),
+            1.0,
+            1.0,
+        );
+    }
+
+    fn render_bar(
+        panel: &mut Offscreen,
+        x: i32,
+        y: i32,
+        total_width: i32,
+        name: &str,
+        value: i32,
+        maximum: i32,
+        bar_color: Color,
+        back_color: Color,
+    ) {
+        // render a bar (HP, experience, etc). First calculate the width of the bar
+        let bar_width = (value as f32 / maximum as f32 * total_width as f32) as i32;
+
+        // render the background first
+        panel.set_default_background(back_color);
+        panel.rect(x, y, total_width, 1, false, BackgroundFlag::Screen);
+
+        // now render the bar on top
+        panel.set_default_background(bar_color);
+        if bar_width > 0 {
+            panel.rect(x, y, bar_width, 1, false, BackgroundFlag::Screen);
+        }
+
+        // finally, some centered text with the values
+        panel.set_default_foreground(WHITE);
+        panel.print_ex(
+            x + total_width / 2,
+            y,
             BackgroundFlag::None,
-            TextAlignment::Left,
-            format!("HP: {}/{} ", hp, max_hp),
+            TextAlignment::Center,
+            &format!("{}: {}/{}", name, value, maximum),
         );
     }
 }
@@ -106,11 +154,12 @@ impl<'a> System<'a> for RenderSystem {
 
         // Prepare for the new frame
         let ui = &mut *data.ui;
-        let root = &mut ui.consoles.root;
+        let consoles_mutex = ui.consoles.clone();
+        let consoles = &mut *consoles_mutex.lock().unwrap();
+        let root = &mut consoles.root;
         ui.config.apply(root);
 
-        let map_mutex = ui.consoles.map.clone();
-        let map = &mut *map_mutex.lock().unwrap();
+        let map = &mut consoles.map;
 
         // Clear the screen first
         map.set_default_foreground(WHITE);
@@ -126,14 +175,14 @@ impl<'a> System<'a> for RenderSystem {
 
         // Some GUI
         if let Some((living, _)) = (&data.living, &data.player).join().next() {
-            Self::draw_hp(root, living.hp, living.max_hp);
+            Self::draw_hp(root, &mut consoles.panel, living.hp, living.max_hp);
         }
 
         // Put it all together
         blit(
             &*map,
             (0, 0),
-            (crate::map::MAP_WIDTH, crate::map::MAP_HEIGHT),
+            (MAP_WIDTH, MAP_HEIGHT),
             root,
             (0, 0),
             1.0,
