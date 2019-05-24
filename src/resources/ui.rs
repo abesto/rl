@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 use tcod::console::*;
 
+use crate::resources::map::{MAP_HEIGHT, MAP_WIDTH};
+
 pub const BAR_WIDTH: i32 = 20;
 pub const PANEL_HEIGHT: i32 = 7;
 pub const SCREEN_WIDTH: i32 = 80;
-pub const SCREEN_HEIGHT: i32 = crate::map::MAP_HEIGHT + PANEL_HEIGHT;
+pub const SCREEN_HEIGHT: i32 = MAP_HEIGHT + PANEL_HEIGHT;
 pub const LIMIT_FPS: i32 = 20;
 pub const PANEL_Y: i32 = SCREEN_HEIGHT - PANEL_HEIGHT;
 
@@ -63,11 +65,8 @@ pub fn init(config: UIConfig) -> UIState {
         config,
         consoles: Arc::new(Mutex::new(UIConsoles {
             root,
-            map: Offscreen::new(crate::map::MAP_WIDTH, crate::map::MAP_HEIGHT),
-            panel: Offscreen::new(
-                crate::map::MAP_WIDTH,
-                SCREEN_HEIGHT - crate::map::MAP_HEIGHT,
-            ),
+            map: Offscreen::new(MAP_WIDTH, MAP_HEIGHT),
+            panel: Offscreen::new(MAP_WIDTH, SCREEN_HEIGHT - MAP_HEIGHT),
         })),
     }
 }

@@ -6,7 +6,7 @@ use specs::{ReadStorage, World};
 use tcod::colors;
 
 use crate::components::*;
-use crate::map::*;
+use crate::resources::map::*;
 
 const ROOM_MAX_SIZE: i32 = 10;
 const ROOM_MIN_SIZE: i32 = 6;
@@ -87,7 +87,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Collider)
                 .with(Name::new("orc"))
-                .with(Living{
+                .with(Living {
                     alive: true,
                     max_hp: 10,
                     hp: 10,

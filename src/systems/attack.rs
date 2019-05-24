@@ -1,7 +1,9 @@
 use shred_derive::SystemData;
 use specs::prelude::*;
+use tcod::colors;
 
 use crate::components::*;
+use crate::resources::messages::Messages;
 
 pub struct AttackSystem;
 
@@ -12,6 +14,8 @@ pub struct AttackSystemData<'a> {
     name: ReadStorage<'a, Name>,
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
+
+    messages: WriteExpect<'a, Messages>,
 }
 
 impl<'a> System<'a> for AttackSystem {
@@ -35,15 +39,21 @@ impl<'a> System<'a> for AttackSystem {
                 let damage = attack_power.0 - target_living.defense;
                 if damage > 0 {
                     // make the target take some damage
-                    println!(
-                        "{} attacks {} for {} hit points.",
-                        attacker_name.0, target_name.0, damage
+                    data.messages.push(
+                        format!(
+                            "{} attacks {} for {} hit points.",
+                            attacker_name.0, target_name.0, damage
+                        ),
+                        colors::WHITE,
                     );
                     target_living.hp -= damage;
                 } else {
-                    println!(
-                        "{} attacks {} but it has no effect!",
-                        attacker_name.0, target_name.0
+                    data.messages.push(
+                        format!(
+                            "{} attacks {} but it has no effect!",
+                            attacker_name.0, target_name.0
+                        ),
+                        colors::WHITE,
                     );
                 }
                 vel.magnitude = 0;

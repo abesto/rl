@@ -7,8 +7,9 @@ use tcod::console::*;
 use tcod::map::Map as FovMap;
 
 use crate::components::*;
-use crate::map::{Map, MAP_HEIGHT, MAP_WIDTH};
-use crate::ui::{BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_WIDTH};
+use crate::resources::map::{Map, MAP_HEIGHT, MAP_WIDTH};
+use crate::resources::messages::Messages;
+use crate::resources::ui::{UIState, BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_WIDTH};
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
 const COLOR_DARK_GROUND: Color = Color {
@@ -27,6 +28,10 @@ const COLOR_LIGHT_GROUND: Color = Color {
     b: 50,
 };
 
+const MSG_X: i32 = BAR_WIDTH + 2;
+const MSG_WIDTH: i32 = SCREEN_WIDTH - BAR_WIDTH - 2;
+const MSG_HEIGHT: usize = PANEL_HEIGHT as usize - 1;
+
 pub struct RenderSystem;
 
 #[derive(SystemData)]
@@ -39,8 +44,9 @@ pub struct RenderSystemData<'a> {
     entities: Entities<'a>,
 
     map: ReadExpect<'a, Map>,
+    messages: ReadExpect<'a, Messages>,
     fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
-    ui: WriteExpect<'a, crate::ui::UIState>,
+    ui: WriteExpect<'a, UIState>,
 }
 
 impl RenderSystem {
@@ -70,7 +76,7 @@ impl RenderSystem {
         }
     }
 
-    fn draw_hp(root: &mut Root, panel: &mut Offscreen, hp: i32, max_hp: i32) {
+    fn draw_hp(panel: &mut Offscreen, hp: i32, max_hp: i32) {
         // prepare to render the GUI panel
         panel.set_default_background(BLACK);
         panel.clear();
@@ -79,19 +85,9 @@ impl RenderSystem {
         Self::render_bar(
             panel, 1, 1, BAR_WIDTH, "HP", hp, max_hp, LIGHT_RED, DARKER_RED,
         );
-
-        // blit the contents of `panel` to the root console
-        blit(
-            panel,
-            (0, 0),
-            (SCREEN_WIDTH, PANEL_HEIGHT),
-            root,
-            (0, PANEL_Y),
-            1.0,
-            1.0,
-        );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_bar(
         panel: &mut Offscreen,
         x: i32,
@@ -125,6 +121,20 @@ impl RenderSystem {
             TextAlignment::Center,
             &format!("{}: {}/{}", name, value, maximum),
         );
+    }
+
+    fn render_messages(panel: &mut Offscreen, messages: &[(String, Color)]) {
+        // print the game messages, one line at a time
+        let mut y = MSG_HEIGHT as i32;
+        for &(ref msg, color) in messages.iter().rev() {
+            let msg_height = panel.get_height_rect(MSG_X, y, MSG_WIDTH, 0, msg);
+            y -= msg_height;
+            if y < 0 {
+                break;
+            }
+            panel.set_default_foreground(color);
+            panel.print_rect(MSG_X, y, MSG_WIDTH, 0, msg);
+        }
     }
 }
 
@@ -173,18 +183,31 @@ impl<'a> System<'a> for RenderSystem {
             Self::draw_object(map, position, visual);
         }
 
-        // Some GUI
-        if let Some((living, _)) = (&data.living, &data.player).join().next() {
-            Self::draw_hp(root, &mut consoles.panel, living.hp, living.max_hp);
-        }
-
-        // Put it all together
+        // Blit the map
         blit(
             &*map,
             (0, 0),
             (MAP_WIDTH, MAP_HEIGHT),
             root,
             (0, 0),
+            1.0,
+            1.0,
+        );
+
+        // Some GUI
+        let panel = &mut consoles.panel;
+        if let Some((living, _)) = (&data.living, &data.player).join().next() {
+            Self::draw_hp(panel, living.hp, living.max_hp);
+        }
+        Self::render_messages(panel, &(*data.messages).inner);
+
+        // Blit the GUI
+        blit(
+            panel,
+            (0, 0),
+            (SCREEN_WIDTH, PANEL_HEIGHT),
+            root,
+            (0, PANEL_Y),
             1.0,
             1.0,
         );

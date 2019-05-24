@@ -5,7 +5,7 @@ use tcod::input::KeyCode::*;
 
 use crate::components::velocity::Heading::*;
 use crate::components::{Living, Player, Velocity};
-use crate::ui::UIState;
+use crate::resources::ui::UIState;
 use crate::PlayerAction;
 use crate::PlayerAction::*;
 

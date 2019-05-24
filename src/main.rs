@@ -4,13 +4,14 @@ use tcod::colors;
 use tcod::input::Key;
 
 mod components;
-mod map;
 mod mapgen;
+mod resources;
 mod systems;
-mod ui;
 
-use crate::map::Map;
-use crate::ui::UIState;
+use crate::resources::map::Map;
+use crate::resources::messages::Messages;
+use crate::resources::ui;
+use crate::resources::ui::{UIConfig, UIState, PANEL_HEIGHT};
 use components::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,12 +60,20 @@ fn main() {
     dispatcher.setup(&mut world.res);
 
     // Initialize UI state
-    let ui_config = ui::UIConfig::new();
+    let ui_config = UIConfig::new();
     let ui_state = ui::init(ui_config);
     world.add_resource(ui_state);
 
+    // Initialize the message log
+    let mut messages = Messages::new(PANEL_HEIGHT as usize);
+    messages.push(
+        "Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.",
+        colors::RED,
+    );
+    world.add_resource(messages);
+
     // Set up the map
-    map::Map::new_random(&mut world);
+    Map::new_random(&mut world);
     let map = || world.read_resource::<Map>();
     let fov_map = systems::fov::new_fov_map(&map().tiles);
     let spawn_point = map().spawn_point.clone();

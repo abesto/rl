@@ -3,6 +3,7 @@ use specs::prelude::*;
 use tcod::colors;
 
 use crate::components::*;
+use crate::resources::messages::Messages;
 
 pub struct PlayerDeathSystem;
 
@@ -11,6 +12,8 @@ pub struct PlayerDeathSystemData<'a> {
     living: WriteStorage<'a, Living>,
     player: ReadStorage<'a, Player>,
     visual: WriteStorage<'a, Visual>,
+
+    messages: WriteExpect<'a, Messages>,
 }
 
 impl<'a> System<'a> for PlayerDeathSystem {
@@ -25,7 +28,7 @@ impl<'a> System<'a> for PlayerDeathSystem {
                 .find(|j| j.0.alive && j.0.hp <= 0)
         {
             // the game ended!
-            println!("You died!");
+            data.messages.push("You died!", colors::RED);
             living.alive = false;
 
             // for added effect, transform the player into a corpse!

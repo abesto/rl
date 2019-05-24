@@ -2,7 +2,7 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 
 use crate::components::{Collider, Position, Velocity};
-use crate::map::Map;
+use crate::resources::map::Map;
 
 pub struct CollisionSystem;
 

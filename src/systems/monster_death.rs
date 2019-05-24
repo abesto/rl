@@ -3,6 +3,7 @@ use specs::prelude::*;
 use tcod::colors;
 
 use crate::components::*;
+use crate::resources::messages::Messages;
 
 pub struct MonsterDeathSystem;
 
@@ -17,6 +18,7 @@ pub struct MonsterDeathSystemData<'a> {
     collider: WriteStorage<'a, Collider>,
     power: WriteStorage<'a, Power>,
 
+    messages: WriteExpect<'a, Messages>,
     entity: Entities<'a>,
 }
 
@@ -38,7 +40,8 @@ impl<'a> System<'a> for MonsterDeathSystem {
         {
             // transform it into a nasty corpse! it doesn't block, can't be
             // attacked and doesn't move
-            println!("{} is dead!", name.0);
+            data.messages
+                .push(format!("{} is dead!", name.0), colors::ORANGE);
 
             // You are now dead
             living.alive = false;

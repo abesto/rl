@@ -4,7 +4,7 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::map::Map as FovMap;
 
-use crate::map::{Map, MAP_HEIGHT, MAP_WIDTH};
+use crate::resources::map::{Map, MAP_HEIGHT, MAP_WIDTH};
 
 #[derive(SystemData)]
 pub struct FogOfWarSystemData<'a> {

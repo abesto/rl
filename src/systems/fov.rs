@@ -5,7 +5,7 @@ use specs::prelude::*;
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
 use crate::components::{Player, Position, PreviousPosition};
-use crate::map::{Tiles, MAP_HEIGHT, MAP_WIDTH};
+use crate::resources::map::{Tiles, MAP_HEIGHT, MAP_WIDTH};
 
 const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
