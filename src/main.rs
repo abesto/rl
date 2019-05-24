@@ -55,8 +55,7 @@ fn main() {
 
     // Wire it all up
     world.add_resource(PlayerAction::default());
-    world.register::<Living>();
-    world.register::<Name>();
+    world.register::<Item>();
     dispatcher.setup(&mut world.res);
 
     // Initialize UI state
@@ -100,6 +99,7 @@ fn main() {
             defense: 2,
         })
         .with(Power(5))
+        .with(Inventory::new())
         .build();
 
     // And start the game

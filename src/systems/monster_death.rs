@@ -26,8 +26,6 @@ impl<'a> System<'a> for MonsterDeathSystem {
     type SystemData = MonsterDeathSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         if let Some((mut living, mut name, _, mut visual, entity)) = (
             &mut data.living,
             &mut data.name,

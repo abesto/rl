@@ -20,8 +20,6 @@ impl<'a> System<'a> for PlayerDeathSystem {
     type SystemData = PlayerDeathSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         if let Some((mut living, _, mut visual)) =
             (&mut data.living, &data.player, &mut data.visual)
                 .join()

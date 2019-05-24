@@ -15,8 +15,6 @@ impl<'a> System<'a> for MovementSystem {
     type SystemData = MovementSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         for (pos, mut vel) in (&mut data.position, &mut data.velocity).join() {
             *pos = &*pos + &*vel;
             vel.magnitude = 0;

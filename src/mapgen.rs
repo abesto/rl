@@ -135,6 +135,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     color: colors::VIOLET,
                 })
                 .with(Name::new("healing potion"))
+                .with(Item::Heal)
                 .build();
         }
     }

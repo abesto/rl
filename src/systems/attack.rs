@@ -22,8 +22,6 @@ impl<'a> System<'a> for AttackSystem {
     type SystemData = AttackSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         for (attacker_pos, mut vel, attacker_name, attack_power) in
             (&data.position, &mut data.velocity, &data.name, &data.power)
                 .join()

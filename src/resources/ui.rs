@@ -50,8 +50,6 @@ impl UIConfig {
 }
 
 pub fn init(config: UIConfig) -> UIState {
-    use tcod::console::Root;
-
     let root = Root::initializer()
         .font("assets/arial10x10.png", FontLayout::Tcod)
         .font_type(FontType::Greyscale)

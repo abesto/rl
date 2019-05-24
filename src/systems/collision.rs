@@ -19,8 +19,6 @@ impl<'a> System<'a> for CollisionSystem {
     type SystemData = CollisionSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         for (pos, mut vel) in (&data.position, &mut data.velocity).join() {
             if vel.magnitude == 0 {
                 continue;

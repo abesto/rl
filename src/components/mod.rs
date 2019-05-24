@@ -1,6 +1,8 @@
 mod ai;
-mod living;
 mod collider;
+mod inventory;
+mod item;
+mod living;
 mod name;
 mod player;
 mod position;
@@ -9,8 +11,10 @@ pub mod velocity;
 mod visual;
 
 pub use ai::Ai;
-pub use living::Living;
 pub use collider::Collider;
+pub use inventory::Inventory;
+pub use item::Item;
+pub use living::Living;
 pub use name::Name;
 pub use player::Player;
 pub use position::{Position, PreviousPosition};

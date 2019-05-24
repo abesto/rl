@@ -157,8 +157,6 @@ impl<'a> System<'a> for RenderSystem {
     type SystemData = RenderSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        use specs::Join;
-
         // Get the FOV map
         let fov_map_mutex = data.fov_map.clone();
         let fov_map = &*fov_map_mutex.lock().unwrap();
