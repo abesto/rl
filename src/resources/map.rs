@@ -60,8 +60,16 @@ impl Map {
     pub fn new_random(world: &mut World) {
         crate::mapgen::generate_map(world)
     }
+}
 
-    pub fn is_blocked(
+pub trait CalculateBlockedMapExt<T> {
+    fn is_blocked(&self, pos: &Position, context: T) -> bool;
+}
+
+impl<'a> CalculateBlockedMapExt<JoinIter<(&ReadStorage<'a, Position>, &ReadStorage<'a, Collider>)>>
+    for Map
+{
+    fn is_blocked(
         &self,
         pos: &Position,
         join: JoinIter<(&ReadStorage<Position>, &ReadStorage<Collider>)>,
@@ -77,6 +85,30 @@ impl Map {
             }
         }
         false
+    }
+}
+
+impl<'a> CalculateBlockedMapExt<&mut World> for Map {
+    fn is_blocked(&self, pos: &Position, world: &mut World) -> bool {
+        use specs::Join;
+        let storage = world.system_data::<(ReadStorage<Position>, ReadStorage<Collider>)>();
+        let joinable_storage = (&storage.0, &storage.1);
+        self.is_blocked(pos, joinable_storage.join())
+    }
+}
+
+pub trait CalculateBlockedWorldExt {
+    //noinspection RsSelfConvention
+    fn is_blocked(&mut self, pos: &Position) -> bool;
+}
+
+impl CalculateBlockedWorldExt for World {
+    fn is_blocked(&mut self, pos: &Position) -> bool {
+        use specs::Join;
+        let map = self.read_resource::<Map>();
+        let storage = self.system_data::<(ReadStorage<Position>, ReadStorage<Collider>)>();
+        let joinable_storage = (&storage.0, &storage.1);
+        map.is_blocked(pos, joinable_storage.join())
     }
 }
 

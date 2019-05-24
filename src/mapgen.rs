@@ -2,7 +2,7 @@ use std::cmp;
 
 use rand::Rng;
 use specs::world::Builder;
-use specs::{ReadStorage, World};
+use specs::World;
 use tcod::colors;
 
 use crate::components::*;
@@ -12,6 +12,7 @@ const ROOM_MAX_SIZE: i32 = 10;
 const ROOM_MIN_SIZE: i32 = 6;
 const MAX_ROOMS: i32 = 30;
 const MAX_ROOM_MONSTERS: i32 = 3;
+const MAX_ROOM_ITEMS: i32 = 2;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Rect {
@@ -64,14 +65,9 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
         let position = Position { x, y };
 
         // Check that we're not trying to place this monster at a location already occupied
-        // by something. This is hella convoluted, but at least it's both correct, and works.
-        {
-            use specs::Join;
-            let storage = world.system_data::<(ReadStorage<Position>, ReadStorage<Collider>)>();
-            let joinable_storage = (&storage.0, &storage.1);
-            if map.is_blocked(&position, joinable_storage.join()) {
-                continue;
-            }
+        // by something.
+        if map.is_blocked(&position, &mut *world) {
+            continue;
         }
 
         if rand::random::<f32>() < 0.8 {
@@ -117,6 +113,30 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 .with(Ai::default())
                 .build();
         };
+    }
+
+    // choose random number of items
+    let num_items = rand::thread_rng().gen_range(0, MAX_ROOM_ITEMS + 1);
+
+    for _ in 0..num_items {
+        // choose random spot for this item
+        let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
+        let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
+        let position = Position { x, y };
+
+        // only place it if the tile is not blocked
+        if !map.is_blocked(&position, &mut *world) {
+            // create a healing potion
+            world
+                .create_entity()
+                .with(position)
+                .with(Visual {
+                    char: '!',
+                    color: colors::VIOLET,
+                })
+                .with(Name::new("healing potion"))
+                .build();
+        }
     }
 }
 
