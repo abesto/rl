@@ -1,18 +1,18 @@
 use specs::*;
 use systems::*;
 use tcod::colors;
-use tcod::input::Key;
+use tcod::input::Mouse;
+use tcod::input::{self, Event, Key};
 
 mod components;
 mod mapgen;
 mod resources;
 mod systems;
 
+use crate::components::*;
 use crate::resources::map::Map;
 use crate::resources::messages::Messages;
-use crate::resources::ui;
-use crate::resources::ui::{UIConfig, UIState, PANEL_HEIGHT};
-use components::*;
+use crate::resources::ui::{self, UIConfig, PANEL_HEIGHT};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {
@@ -63,6 +63,7 @@ fn main() {
     let ui_config = UIConfig::new();
     let ui_state = ui::init(ui_config);
     world.add_resource(ui_state);
+    world.add_resource(Mouse::default());
 
     // Initialize the message log
     let mut messages = Messages::new(PANEL_HEIGHT as usize);
@@ -106,10 +107,14 @@ fn main() {
     while *world.read_resource::<PlayerAction>() != PlayerAction::Exit {
         world.maintain();
         {
-            let ui_state = world.read_resource::<UIState>();
-            let consoles_mutex = ui_state.consoles.clone();
-            let consoles = &mut *consoles_mutex.lock().unwrap();
-            *world.write_resource::<Option<Key>>() = Some(consoles.root.wait_for_keypress(true));
+            match input::check_for_event(input::MOUSE | input::KEY_PRESS) {
+                Some((_, Event::Mouse(m))) => {
+                    *world.write_resource() = m;
+                    *world.write_resource::<Option<Key>>() = None;
+                }
+                Some((_, Event::Key(k))) => *world.write_resource() = Some(k),
+                _ => *world.write_resource::<Option<Key>>() = None,
+            }
         }
         dispatcher.dispatch(&world.res);
     }

@@ -27,9 +27,12 @@ impl<'a> System<'a> for InputSystem {
     type SystemData = InputSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        for (vel, living, _) in (&mut data.velocity, &data.living, &data.player).join() {
-            if let Some(k) = *data.key {
-                *data.action = match (k, living.alive) {
+        if let Some((vel, living, _)) = (&mut data.velocity, &data.living, &data.player)
+            .join()
+            .next()
+        {
+            *data.action = if let Some(k) = *data.key {
+                match (k, living.alive) {
                     (
                         Key {
                             code: Enter,
@@ -61,6 +64,8 @@ impl<'a> System<'a> for InputSystem {
                     }
                     _ => DidntTakeTurn,
                 }
+            } else {
+                DidntTakeTurn
             }
         }
     }

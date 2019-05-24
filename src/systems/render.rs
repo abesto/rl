@@ -4,6 +4,7 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::colors::*;
 use tcod::console::*;
+use tcod::input::Mouse;
 use tcod::map::Map as FovMap;
 
 use crate::components::*;
@@ -36,16 +37,19 @@ pub struct RenderSystem;
 
 #[derive(SystemData)]
 pub struct RenderSystemData<'a> {
+    collider: ReadStorage<'a, Collider>,
     living: ReadStorage<'a, Living>,
+    name: ReadStorage<'a, Name>,
     player: ReadStorage<'a, Player>,
     position: ReadStorage<'a, Position>,
     visual: ReadStorage<'a, Visual>,
-    collider: ReadStorage<'a, Collider>,
+
     entities: Entities<'a>,
 
+    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
     map: ReadExpect<'a, Map>,
     messages: ReadExpect<'a, Messages>,
-    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
+    mouse: ReadExpect<'a, Mouse>,
     ui: WriteExpect<'a, UIState>,
 }
 
@@ -136,6 +140,17 @@ impl RenderSystem {
             panel.print_rect(MSG_X, y, MSG_WIDTH, 0, msg);
         }
     }
+
+    fn render_names_under_mouse(panel: &mut Offscreen, names: &[String]) {
+        panel.set_default_foreground(LIGHT_GREY);
+        panel.print_ex(
+            1,
+            0,
+            BackgroundFlag::None,
+            TextAlignment::Left,
+            names.join(", "),
+        );
+    }
 }
 
 impl<'a> System<'a> for RenderSystem {
@@ -149,7 +164,7 @@ impl<'a> System<'a> for RenderSystem {
         let fov_map = &*fov_map_mutex.lock().unwrap();
 
         // Get the items we'll be rendering
-        let mut items = (&data.position, &data.visual, &data.entities)
+        let mut items = (&data.position, &data.visual, &data.entities, &data.name)
             .join()
             .filter(|j| fov_map.is_in_fov(j.0.x, j.0.y))
             .collect::<Vec<_>>();
@@ -179,7 +194,7 @@ impl<'a> System<'a> for RenderSystem {
         Self::draw_fov(map, &data.map, fov_map);
 
         // Monsters and stuff
-        for (position, visual, _) in items {
+        for (position, visual, _, _) in &items {
             Self::draw_object(map, position, visual);
         }
 
@@ -200,6 +215,20 @@ impl<'a> System<'a> for RenderSystem {
             Self::draw_hp(panel, living.hp, living.max_hp);
         }
         Self::render_messages(panel, &(*data.messages).inner);
+
+        // Mouse look
+        let mouse_pos = Position {
+            x: data.mouse.cx as i32,
+            y: data.mouse.cy as i32,
+        };
+        Self::render_names_under_mouse(
+            panel,
+            &items
+                .iter()
+                .filter(|j| j.0 == &mouse_pos)
+                .map(|j| (j.3).0.clone())
+                .collect::<Vec<_>>(),
+        );
 
         // Blit the GUI
         blit(
