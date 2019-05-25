@@ -1,3 +1,4 @@
+#[derive(Clone, PartialEq)]
 pub struct Menu {
     pub items: Vec<String>,
     pub header: String,
@@ -5,7 +6,7 @@ pub struct Menu {
     pub kind: MenuKind,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum MenuKind {
     Inventory,
 }

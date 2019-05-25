@@ -18,7 +18,7 @@ pub struct InputSystemData<'a> {
     key: Write<'a, Option<Key>>,
 
     name: ReadStorage<'a, Name>,
-    living: ReadStorage<'a, Living>,
+    living: WriteStorage<'a, Living>,
     player: ReadStorage<'a, Player>,
     item: ReadStorage<'a, Item>,
     velocity: WriteStorage<'a, Velocity>,
@@ -35,6 +35,9 @@ pub struct InputSystemData<'a> {
 
 pub struct InputSystem;
 
+// TODO: refactor such that this system populates an action queue
+// and other systems implement the actions themselves. One action is EndTurn.
+
 impl InputSystem {
     fn handle_game_input(mut data: InputSystemData) {
         if let Some((vel, living, inventory, _)) = (
@@ -46,7 +49,7 @@ impl InputSystem {
             .join()
             .next()
         {
-            *data.action = if let Some(k) = *data.key {
+            *data.action = if let Some(k) = data.key.as_ref() {
                 match (k, living.alive) {
                     (
                         Key {
@@ -112,7 +115,7 @@ impl InputSystem {
                                 &mut data.messages,
                             );
                         }
-                        DidntTakeTurn
+                        TookTurn
                     }
                     _ => DidntTakeTurn,
                 }
@@ -125,7 +128,36 @@ impl InputSystem {
     }
 
     fn handle_menu_input(mut data: InputSystemData) {
-        if let Some(Key { code: Char, .. }) = *data.key {
+        let menu = data.menu.as_ref().unwrap();
+
+        let choice: Option<usize> = if let Some(Key {
+            code: Char,
+            printable,
+            ..
+        }) = data.key.as_ref()
+        {
+            if !printable.is_ascii_alphanumeric() {
+                None
+            } else {
+                let n = printable.to_ascii_lowercase() as usize - 'a' as usize;
+                if n <= menu.items.len() {
+                    Some(n)
+                } else {
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        if let Some(n) = choice {
+            *data.action = match menu.kind {
+                MenuKind::Inventory => use_item_from_inventory(n, &mut data),
+            }
+        }
+
+        // If the player made a valid choice, or pressed escape, dismiss the menu
+        if choice.is_some() || data.key.map_or(false, |k| k.code == Escape) {
             *data.menu = None;
         }
         *data.key = None;
@@ -135,7 +167,7 @@ impl InputSystem {
 impl<'a> System<'a> for InputSystem {
     type SystemData = InputSystemData<'a>;
 
-    fn run(&mut self, mut data: Self::SystemData) {
+    fn run(&mut self, data: Self::SystemData) {
         if data.menu.is_some() {
             InputSystem::handle_menu_input(data);
         } else {
@@ -175,9 +207,80 @@ fn inventory_menu(inventory: &Inventory, name: ReadStorage<Name>) -> Menu {
     };
 
     Menu {
-        header: "Press the key next to an item to use it, or any other to cancel.\n".to_string(),
+        header: "Press the key next to an item to use it, escape to cancel.\n".to_string(),
         width: INVENTORY_WIDTH,
         items: options,
         kind: MenuKind::Inventory,
     }
+}
+
+fn use_item_from_inventory(inventory_id: usize, data: &mut InputSystemData) -> PlayerAction {
+    // We have a bunch of separate borrows of data here to get the inventory.
+    // Would be good to get rid of that; one way might be passing subsets of the
+    // input system to on_use functions, but generalization will make that a pain.
+    let opt_item = {
+        let (inventory, _) = (&mut data.inventory, &data.player).join().next().unwrap();
+        if let Some(entity) = inventory.0.get(inventory_id) {
+            data.item.get(*entity)
+        } else {
+            return DidntTakeTurn;
+        }
+    };
+    if let Some(item) = opt_item {
+        let on_use = match item {
+            Item::Heal => cast_heal,
+        };
+        match on_use(inventory_id, data) {
+            UseResult::UsedUp => {
+                // destroy after use, unless it was cancelled for some reason
+                let (inventory, _) = (&mut data.inventory, &data.player).join().next().unwrap();
+                inventory.0.remove(inventory_id);
+                TookTurn
+            }
+            UseResult::Cancelled => {
+                data.messages.push("Cancelled", colors::WHITE);
+                DidntTakeTurn
+            }
+        }
+    } else {
+        let (inventory, _) = (&mut data.inventory, &data.player).join().next().unwrap();
+        data.messages.push(
+            format!(
+                "The {} cannot be used.",
+                data.name.get(inventory.0[inventory_id]).unwrap().0
+            ),
+            colors::WHITE,
+        );
+        DidntTakeTurn
+    }
+}
+
+enum UseResult {
+    UsedUp,
+    Cancelled,
+}
+
+const HEAL_AMOUNT: i32 = 4;
+
+fn cast_heal(_inventory_id: usize, data: &mut InputSystemData) -> UseResult {
+    // heal the player
+    if let Some((living, _)) = (&mut data.living, &data.player).join().next() {
+        if living.hp == living.max_hp {
+            data.messages
+                .push("You are already at full health.", colors::RED);
+            UseResult::Cancelled
+        } else {
+            data.messages
+                .push("Your wounds start to feel better!", colors::LIGHT_VIOLET);
+            heal(living, HEAL_AMOUNT);
+            UseResult::UsedUp
+        }
+    } else {
+        UseResult::Cancelled
+    }
+}
+
+/// heal by the given amount, without going over the maximum
+pub fn heal(living: &mut Living, amount: i32) {
+    living.hp = living.max_hp.min(living.hp + amount);
 }
