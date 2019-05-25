@@ -164,7 +164,11 @@ fn render_menu(root: &mut Root, menu: &Menu) {
     );
 
     // calculate total height for the header (after auto-wrap) and one line per option
-    let header_height = root.get_height_rect(0, 0, menu.width, SCREEN_HEIGHT, &menu.header);
+    let header_height = if menu.header.is_empty() {
+        0
+    } else {
+        root.get_height_rect(0, 0, menu.width, SCREEN_HEIGHT, &menu.header)
+    };
     let height = menu.items.len() as i32 + header_height;
 
     // create an off-screen console that represents the menu's window
@@ -294,6 +298,21 @@ fn view_main_menu(consoles: &mut UIConsoles) {
         .ok()
         .expect("Background image not found");
     tcod::image::blit_2x(&img, (0, 0), (-1, -1), &mut consoles.root, (0, 0));
+    consoles.root.set_default_foreground(LIGHT_YELLOW);
+    consoles.root.print_ex(
+        SCREEN_WIDTH / 2,
+        SCREEN_HEIGHT / 2 - 4,
+        BackgroundFlag::None,
+        TextAlignment::Center,
+        "TOMBS OF THE ANCIENT KINGS",
+    );
+    consoles.root.print_ex(
+        SCREEN_WIDTH / 2,
+        SCREEN_HEIGHT - 2,
+        BackgroundFlag::None,
+        TextAlignment::Center,
+        "by @abesto",
+    );
 }
 
 fn prepare_for_new_frame(consoles: &mut UIConsoles, data: &mut RenderSystemData) {
