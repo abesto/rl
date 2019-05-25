@@ -9,4 +9,5 @@ pub struct Menu {
 #[derive(Copy, Clone, PartialEq)]
 pub enum MenuKind {
     Inventory,
+    Drop,
 }

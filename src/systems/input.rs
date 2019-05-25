@@ -97,7 +97,7 @@ impl InputSystem {
                         },
                         true,
                     ) => {
-                        // how a menu with each item of the inventory as an option
+                        // show a menu with each item of the inventory as an option
                         *data.menu = Some(inventory_menu(&inventory, data.name));
                         DidntTakeTurn
                     }
@@ -126,6 +126,17 @@ impl InputSystem {
                         } else {
                             DidntTakeTurn
                         }
+                    }
+                    (
+                        Key {
+                            code: Char,
+                            printable: 'd',
+                            ..
+                        },
+                        true,
+                    ) => {
+                        *data.menu = Some(drop_menu(&inventory, data.name));
+                        DidntTakeTurn
                     }
                     _ => DidntTakeTurn,
                 }
@@ -163,6 +174,7 @@ impl InputSystem {
         if let Some(n) = choice {
             *data.action = match menu.kind {
                 MenuKind::Inventory => use_item_from_inventory(n, &mut data),
+                MenuKind::Drop => drop_item(n, &mut data),
             }
         }
 
@@ -322,6 +334,47 @@ fn use_item_from_inventory(inventory_id: usize, data: &mut InputSystemData) -> P
         );
         DidntTakeTurn
     }
+}
+
+fn drop_menu(inventory: &Inventory, name: ReadStorage<Name>) -> Menu {
+    let options: Vec<String> = if inventory.0.len() == 0 {
+        vec!["Inventory is empty.".to_string()]
+    } else {
+        inventory
+            .0
+            .iter()
+            .map(|item| name.get(*item).unwrap().0.clone())
+            .collect()
+    };
+
+    Menu {
+        header: "Press the key next to an item to drop it, escape to cancel.\n".to_string(),
+        width: INVENTORY_WIDTH,
+        items: options,
+        kind: MenuKind::Drop,
+    }
+}
+
+fn drop_item(inventory_id: usize, data: &mut InputSystemData) -> PlayerAction {
+    let (&entity, position) = {
+        let (inventory, position, _) = (&mut data.inventory, &data.position, &data.player)
+            .join()
+            .next()
+            .unwrap();
+        if let Some(entity) = inventory.0.get(inventory_id) {
+            (entity, position.clone())
+        } else {
+            return DidntTakeTurn;
+        }
+    };
+    data.position.insert(entity, position).unwrap();
+    let (inventory, _) = (&mut data.inventory, &data.player).join().next().unwrap();
+    inventory.0.remove(inventory_id);
+    data.messages.push(
+        format!("You dropped a {}.", data.name.get(entity).unwrap().0),
+        colors::YELLOW,
+    );
+    TookTurn
 }
 
 fn handle_use_result(
