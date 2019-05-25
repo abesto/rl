@@ -19,4 +19,8 @@ impl Messages {
         }
         self.inner.push((message.into(), color));
     }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
 }

@@ -25,7 +25,7 @@ pub struct AISystemData<'a> {
     velocity: WriteStorage<'a, Velocity>,
 
     action: ReadExpect<'a, PlayerAction>,
-    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
+    fov_map: Option<ReadExpect<'a, Arc<Mutex<FovMap>>>>,
     messages: WriteExpect<'a, Messages>,
 }
 
@@ -35,16 +35,22 @@ impl<'a> System<'a> for AISystem {
     type SystemData = AISystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
+        // If there's no FOV map, we're in some weird state, like the main menu
+        if data.fov_map.is_none() {
+            return;
+        }
+
         // Only run if the player took a turn
         if *data.action == PlayerAction::DidntTakeTurn {
             return;
         }
 
-        // Let's find the player...
-        let (_, player_living) = (&data.player, &data.living).join().next().unwrap();
-
         // Only run if the player is living
-        if !player_living.alive {
+        if !(&data.player, &data.living)
+            .join()
+            .next()
+            .map_or(false, |j| j.1.alive)
+        {
             return;
         }
 
@@ -52,19 +58,21 @@ impl<'a> System<'a> for AISystem {
         let mut will_move_to: HashSet<Position> = HashSet::new();
 
         // Select the entities we'll want to apply AI logic to
-        let fov_map_mutex = data.fov_map.clone();
-        let fov_map = &*fov_map_mutex.lock().unwrap();
-        let monsters: Vec<Entity> = (
-            &data.living,
-            &data.position,
-            &data.velocity,
-            &data.ai,
-            &data.entity,
-        )
-            .join()
-            .filter(|j| j.0.alive && fov_map.is_in_fov(j.1.x, j.1.y))
-            .map(|j| j.4)
-            .collect();
+        let monsters: Vec<Entity> = {
+            let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
+            let fov_map = &*fov_map_mutex.lock().unwrap();
+            (
+                &data.living,
+                &data.position,
+                &data.velocity,
+                &data.ai,
+                &data.entity,
+            )
+                .join()
+                .filter(|j| j.0.alive && fov_map.is_in_fov(j.1.x, j.1.y))
+                .map(|j| j.4)
+                .collect()
+        };
 
         for monster in monsters {
             // Decide where we want to go

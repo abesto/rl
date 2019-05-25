@@ -17,7 +17,7 @@ pub struct FovSystemData<'a> {
     position: ReadStorage<'a, Position>,
     prev_position: ReadStorage<'a, PreviousPosition>,
 
-    fov_map: WriteExpect<'a, Arc<Mutex<FovMap>>>,
+    fov_map: Option<WriteExpect<'a, Arc<Mutex<FovMap>>>>,
 }
 
 pub struct FovSystem;
@@ -26,10 +26,13 @@ impl<'a> System<'a> for FovSystem {
     type SystemData = FovSystemData<'a>;
 
     fn run(&mut self, data: Self::SystemData) {
+        if data.fov_map.is_none() {
+            return;
+        }
         for (prev, pos, _) in (&data.prev_position, &data.position, &data.player).join() {
             // recompute FOV if needed (the player moved or something)
             if prev.x != pos.x || prev.y != pos.x {
-                let fov_map_mutex = data.fov_map.clone();
+                let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
                 let fov_map = &mut *fov_map_mutex.lock().unwrap();
                 fov_map.compute_fov(pos.x, pos.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
             }

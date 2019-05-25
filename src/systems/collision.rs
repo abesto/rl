@@ -12,13 +12,16 @@ pub struct CollisionSystemData<'a> {
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
 
-    map: ReadExpect<'a, Map>,
+    map: Option<ReadExpect<'a, Map>>,
 }
 
 impl<'a> System<'a> for CollisionSystem {
     type SystemData = CollisionSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
+        if data.map.is_none() {
+            return;
+        }
         for (pos, mut vel) in (&data.position, &mut data.velocity).join() {
             if vel.magnitude == 0 {
                 continue;
@@ -26,6 +29,8 @@ impl<'a> System<'a> for CollisionSystem {
             let candidate = &*pos + &*vel;
             let blocked = data
                 .map
+                .as_ref()
+                .unwrap()
                 .is_blocked(&candidate, (&data.position, &data.collider).join());
             // If something blocks the movement, reject the whole thing
             if blocked {

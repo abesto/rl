@@ -10,4 +10,5 @@ pub struct Menu {
 pub enum MenuKind {
     Inventory,
     Drop,
+    Main,
 }

@@ -11,15 +11,18 @@ mod systems;
 
 use crate::components::*;
 use crate::resources::map::Map;
-use crate::resources::menu::Menu;
+use crate::resources::menu::{Menu, MenuKind};
 use crate::resources::messages::Messages;
 use crate::resources::targeting::Targeting;
-use crate::resources::ui::{self, UIConfig, PANEL_HEIGHT};
+use crate::resources::ui::{self, UIConfig, UIState, PANEL_HEIGHT};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {
     TookTurn,
     DidntTakeTurn,
+    NewGame,
+    LoadGame,
+    MainMenu,
     Exit,
 }
 
@@ -30,6 +33,7 @@ impl Default for PlayerAction {
 }
 
 fn build_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
+    // TODO define a separate dispatcher for the main menu, and so get rid of Option<> resources
     DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
@@ -109,9 +113,24 @@ fn spawn_player(world: &mut World) {
         .build();
 }
 
+fn get_action(world: &World) -> PlayerAction {
+    *world.read_resource::<PlayerAction>()
+}
+
+fn exited(world: &World) -> bool {
+    get_action(world) == PlayerAction::Exit
+}
+
+fn window_closed(world: &World) -> bool {
+    let ui = world.read_resource::<UIState>();
+    let consoles_mutex = ui.consoles.clone();
+    let consoles = &mut *consoles_mutex.lock().unwrap();
+    consoles.root.window_closed()
+}
+
 fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
     dispatcher.dispatch(&world.res);
-    while *world.read_resource::<PlayerAction>() != PlayerAction::Exit {
+    while !exited(world) && !window_closed(world) {
         world.maintain();
         {
             match input::check_for_event(input::MOUSE | input::KEY_PRESS) {
@@ -124,13 +143,43 @@ fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
             }
         }
         dispatcher.dispatch(&world.res);
+        if get_action(world) == PlayerAction::NewGame {
+            end_game(world);
+            new_game(world);
+            dispatcher.dispatch(&world.res);
+        }
+        if get_action(world) == PlayerAction::MainMenu {
+            end_game(world);
+            main_menu(world);
+            dispatcher.dispatch(&world.res);
+        }
     }
+}
+
+fn end_game(world: &mut World) {
+    world.write_resource::<Messages>().clear();
+    world.delete_all();
+    world.maintain();
 }
 
 fn new_game(world: &mut World) {
     new_map(world);
     spawn_player(world);
     welcome_message(world);
+    world.maintain();
+}
+
+fn main_menu(world: &mut World) {
+    *world.write_resource::<Option<Menu>>() = Some(Menu {
+        items: vec![
+            "Play a new game".to_string(),
+            "Continue last game".to_string(),
+            "Quit".to_string(),
+        ],
+        header: "".to_string(),
+        width: 24,
+        kind: MenuKind::Main,
+    })
 }
 
 fn main() {
@@ -139,6 +188,6 @@ fn main() {
     setup_ecs(&mut world, &mut dispatcher);
     initialize_ui(&mut world);
 
-    new_game(&mut world);
+    main_menu(&mut world);
     game_loop(&mut world, &mut dispatcher);
 }

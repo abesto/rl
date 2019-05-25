@@ -38,7 +38,7 @@ pub struct InputSystemData<'a> {
     ui: WriteExpect<'a, UIState>,
     action: WriteExpect<'a, PlayerAction>,
     messages: WriteExpect<'a, Messages>,
-    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
+    fov_map: Option<ReadExpect<'a, Arc<Mutex<FovMap>>>>,
     targeting: WriteExpect<'a, Option<Targeting>>,
 }
 
@@ -72,7 +72,7 @@ impl InputSystem {
                         data.ui.config.fullscreen = !data.ui.config.fullscreen;
                         DidntTakeTurn
                     }
-                    (Key { code: Escape, .. }, _) => Exit,
+                    (Key { code: Escape, .. }, _) => MainMenu,
                     (Key { code: Up, .. }, true) => {
                         *vel = Velocity::unit(North);
                         TookTurn
@@ -175,11 +175,14 @@ impl InputSystem {
             *data.action = match menu.kind {
                 MenuKind::Inventory => use_item_from_inventory(n, &mut data),
                 MenuKind::Drop => drop_item(n, &mut data),
+                MenuKind::Main => handle_main_menu_choice(n, &mut data),
             }
         }
 
         // If the player made a valid choice, or pressed escape, dismiss the menu
-        if choice.is_some() || data.key.map_or(false, |k| k.code == Escape) {
+        let escape_pressed = data.key.map_or(false, |k| k.code == Escape);
+        let is_main_menu = data.menu.as_ref().unwrap().kind == MenuKind::Main;
+        if choice.is_some() || (escape_pressed && !is_main_menu) {
             *data.menu = None;
         }
         *data.key = None;
@@ -205,9 +208,12 @@ impl InputSystem {
         let player_position: &Position = (&data.position, &data.player).join().next().unwrap().0;
 
         // Only accept positions in the FOV
-        let fov_map_mutex = data.fov_map.clone();
-        let fov_map = &*fov_map_mutex.lock().unwrap();
-        if !fov_map.is_in_fov(mouse_position.x, mouse_position.y) {
+        let is_in_fov = {
+            let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
+            let fov_map = &*fov_map_mutex.lock().unwrap();
+            fov_map.is_in_fov(mouse_position.x, mouse_position.y)
+        };
+        if !is_in_fov {
             return DidntTakeTurn;
         }
 
@@ -543,7 +549,7 @@ fn closest_monster(max_range: i32, data: &mut InputSystemData) -> Option<Entity>
 
     let player_pos = (&data.position, &data.player).join().next().unwrap().0;
 
-    let fov_map_mutex = data.fov_map.clone();
+    let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
     let fov_map = &*fov_map_mutex.lock().unwrap();
 
     for (entity, pos, _, _) in (&data.entity, &data.position, &data.living, &data.ai)
@@ -559,4 +565,13 @@ fn closest_monster(max_range: i32, data: &mut InputSystemData) -> Option<Entity>
         }
     }
     closest_enemy
+}
+
+fn handle_main_menu_choice(n: usize, _data: &mut InputSystemData) -> PlayerAction {
+    match n {
+        0 => NewGame,
+        1 => unimplemented!(),
+        2 => Exit,
+        _ => unreachable!(),
+    }
 }
