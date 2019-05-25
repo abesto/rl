@@ -29,9 +29,8 @@ impl Default for PlayerAction {
     }
 }
 
-fn main() {
-    let mut world = World::new();
-    let mut dispatcher = DispatcherBuilder::new()
+fn build_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
+    DispatcherBuilder::new()
         .with(InputSystem, "input", &[])
         .with(LocationHistorySystem, "location_history", &[])
         .with_barrier() // Player turn
@@ -53,39 +52,40 @@ fn main() {
         .with_barrier() // Rendering
         .with(FogOfWarSystem, "fog_of_war", &["fov"])
         .with_thread_local(RenderSystem)
-        .build();
+        .build()
+}
 
-    // Wire it all up
+fn setup_ecs(world: &mut World, dispatcher: &mut Dispatcher) {
     world.add_resource(PlayerAction::default());
     world.add_resource::<Option<Targeting>>(None);
+    world.add_resource::<Option<Menu>>(None);
+    world.add_resource(Messages::new(PANEL_HEIGHT as usize));
     world.register::<Item>();
     dispatcher.setup(&mut world.res);
+}
 
-    // Initialize UI state
+fn welcome_message(world: &mut World) {
+    world.write_resource::<Messages>().push(
+        "Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.",
+        colors::RED,
+    );
+}
+
+fn initialize_ui(world: &mut World) {
     let ui_config = UIConfig::new();
     let ui_state = ui::init(ui_config);
     world.add_resource(ui_state);
     world.add_resource(Mouse::default());
+}
 
-    // Initialize the message log
-    let mut messages = Messages::new(PANEL_HEIGHT as usize);
-    messages.push(
-        "Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.",
-        colors::RED,
-    );
-    world.add_resource(messages);
-
-    // No menu is open when we start
-    world.add_resource::<Option<Menu>>(None);
-
-    // Set up the map
-    Map::new_random(&mut world);
-    let map = || world.read_resource::<Map>();
-    let fov_map = systems::fov::new_fov_map(&map().tiles);
-    let spawn_point = map().spawn_point.clone();
+fn new_map(world: &mut World) {
+    Map::new_random(world);
+    let fov_map = systems::fov::new_fov_map(&world.read_resource::<Map>().tiles);
     world.add_resource(fov_map);
+}
 
-    // Create player ;)
+fn spawn_player(world: &mut World) {
+    let spawn_point = world.read_resource::<Map>().spawn_point.clone();
     world
         .create_entity()
         .with(spawn_point)
@@ -107,8 +107,9 @@ fn main() {
         .with(Power(5))
         .with(Inventory::new())
         .build();
+}
 
-    // And start the game
+fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
     dispatcher.dispatch(&world.res);
     while *world.read_resource::<PlayerAction>() != PlayerAction::Exit {
         world.maintain();
@@ -124,4 +125,20 @@ fn main() {
         }
         dispatcher.dispatch(&world.res);
     }
+}
+
+fn new_game(world: &mut World) {
+    new_map(world);
+    spawn_player(world);
+    welcome_message(world);
+}
+
+fn main() {
+    let mut world = World::new();
+    let mut dispatcher = build_dispatcher();
+    setup_ecs(&mut world, &mut dispatcher);
+    initialize_ui(&mut world);
+
+    new_game(&mut world);
+    game_loop(&mut world, &mut dispatcher);
 }
