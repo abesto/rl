@@ -1,8 +1,12 @@
+use std::sync::{Arc, Mutex};
+
+use shred::PanicHandler;
 use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::colors;
 use tcod::input::Key;
 use tcod::input::KeyCode::*;
+use tcod::map::Map as FovMap;
 
 use crate::components::velocity::Heading::*;
 use crate::components::*;
@@ -11,12 +15,12 @@ use crate::resources::messages::Messages;
 use crate::resources::ui::{UIState, INVENTORY_WIDTH};
 use crate::PlayerAction;
 use crate::PlayerAction::*;
-use shred::PanicHandler;
 
 #[derive(SystemData)]
 pub struct InputSystemData<'a> {
     key: Write<'a, Option<Key>>,
 
+    ai: ReadStorage<'a, Ai>,
     name: ReadStorage<'a, Name>,
     living: WriteStorage<'a, Living>,
     player: ReadStorage<'a, Player>,
@@ -31,6 +35,7 @@ pub struct InputSystemData<'a> {
     ui: WriteExpect<'a, UIState>,
     action: WriteExpect<'a, PlayerAction>,
     messages: WriteExpect<'a, Messages>,
+    fov_map: ReadExpect<'a, Arc<Mutex<FovMap>>>,
 }
 
 pub struct InputSystem;
@@ -113,9 +118,10 @@ impl InputSystem {
                                 &mut data.position,
                                 inventory,
                                 &mut data.messages,
-                            );
+                            )
+                        } else {
+                            DidntTakeTurn
                         }
-                        TookTurn
                     }
                     _ => DidntTakeTurn,
                 }
@@ -182,16 +188,18 @@ fn pick_item_up(
     position: &mut WriteStorage<Position>,
     inventory: &mut Inventory,
     messages: &mut Write<Messages, PanicHandler>,
-) {
+) -> PlayerAction {
     if inventory.0.len() >= 26 {
         messages.push(
             format!("Your inventory is full, cannot pick up {}.", item_name.0),
             colors::RED,
         );
+        DidntTakeTurn
     } else {
         position.remove(item);
         messages.push(format!("You picked up a {}!", item_name.0), colors::GREEN);
         inventory.0.push(item);
+        TookTurn
     }
 }
 
@@ -229,6 +237,7 @@ fn use_item_from_inventory(inventory_id: usize, data: &mut InputSystemData) -> P
     if let Some(item) = opt_item {
         let on_use = match item {
             Item::Heal => cast_heal,
+            Item::Lightning => cast_lightning,
         };
         match on_use(inventory_id, data) {
             UseResult::UsedUp => {
@@ -283,4 +292,56 @@ fn cast_heal(_inventory_id: usize, data: &mut InputSystemData) -> UseResult {
 /// heal by the given amount, without going over the maximum
 pub fn heal(living: &mut Living, amount: i32) {
     living.hp = living.max_hp.min(living.hp + amount);
+}
+
+const LIGHTNING_RANGE: i32 = 5;
+const LIGHTNING_DAMAGE: i32 = 20;
+
+fn cast_lightning(_inventory_id: usize, data: &mut InputSystemData) -> UseResult {
+    // find closest enemy (inside a maximum range and damage it)
+    let monster = closest_monster(LIGHTNING_RANGE, data);
+    if let Some(monster) = monster {
+        // zap it!
+        data.messages.push(
+            format!(
+                "A lightning bolt strikes the {} with a loud thunder! \
+                 The damage is {} hit points.",
+                data.name.get(monster).unwrap().0,
+                LIGHTNING_DAMAGE
+            ),
+            colors::LIGHT_BLUE,
+        );
+        data.living.get_mut(monster).unwrap().hp -= LIGHTNING_DAMAGE;
+        UseResult::UsedUp
+    } else {
+        // no enemy found within maximum range
+        data.messages
+            .push("No enemy is close enough to strike.", colors::RED);
+        UseResult::Cancelled
+    }
+}
+
+/// find closest enemy, up to a maximum range, and in the player's FOV
+fn closest_monster(max_range: i32, data: &mut InputSystemData) -> Option<Entity> {
+    let mut closest_enemy = None;
+    let mut closest_dist = (max_range + 1) as f32; // start with (slightly more than) maximum range
+
+    let player_pos = (&data.position, &data.player).join().next().unwrap().0;
+
+    let fov_map_mutex = data.fov_map.clone();
+    let fov_map = &*fov_map_mutex.lock().unwrap();
+
+    for (entity, pos, _, _) in (&data.entity, &data.position, &data.living, &data.ai)
+        .join()
+        .filter(|j| j.2.alive && fov_map.is_in_fov(j.1.x, j.1.y))
+    {
+        // calculate distance between this object and the player
+        let dist = player_pos.distance_to(pos);
+        if dist < closest_dist {
+            // it's closer, so remember it
+            closest_enemy = Some(entity);
+            closest_dist = dist;
+        }
+    }
+    closest_enemy
 }

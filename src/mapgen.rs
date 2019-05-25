@@ -126,17 +126,32 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
 
         // only place it if the tile is not blocked
         if !map.is_blocked(&position, &mut *world) {
-            // create a healing potion
-            world
-                .create_entity()
-                .with(position)
-                .with(Visual {
-                    char: '!',
-                    color: colors::VIOLET,
-                })
-                .with(Name::new("healing potion"))
-                .with(Item::Heal)
-                .build();
+            let dice = rand::random::<f32>();
+            if dice < 0.7 {
+                // create a healing potion (70% chance)
+                world
+                    .create_entity()
+                    .with(position)
+                    .with(Visual {
+                        char: '!',
+                        color: colors::VIOLET,
+                    })
+                    .with(Name::new("healing potion"))
+                    .with(Item::Heal)
+                    .build();
+            } else {
+                // create a lightning bolt scroll (30% chance)
+                world
+                    .create_entity()
+                    .with(position)
+                    .with(Visual {
+                        char: '#',
+                        color: colors::LIGHT_YELLOW,
+                    })
+                    .with(Name::new("scroll of lightning bolt"))
+                    .with(Item::Lightning)
+                    .build();
+            }
         }
     }
 }
