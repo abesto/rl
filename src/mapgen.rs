@@ -139,8 +139,8 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Name::new("healing potion"))
                     .with(Item::Heal)
                     .build();
-            } else if dice < 0.7 + 0.15 {
-                // create a lightning bolt scroll (15% chance)
+            } else if dice < 0.7 + 0.1 {
+                // create a lightning bolt scroll (10% chance)
                 world
                     .create_entity()
                     .with(position)
@@ -151,8 +151,8 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Name::new("scroll of lightning bolt"))
                     .with(Item::Lightning)
                     .build();
-            } else {
-                // create a lightning bolt scroll (15% chance)
+            } else if dice < 0.7 + 0.1 + 0.1 {
+                // create a lightning bolt scroll (10% chance)
                 world
                     .create_entity()
                     .with(position)
@@ -162,6 +162,18 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("scroll of confusion"))
                     .with(Item::Confuse)
+                    .build();
+            } else {
+                // create a fireball scroll (10% chance)
+                world
+                    .create_entity()
+                    .with(position)
+                    .with(Visual {
+                        char: '#',
+                        color: colors::DARK_RED,
+                    })
+                    .with(Name::new("scroll of fireball"))
+                    .with(Item::Fireball)
                     .build();
             }
         }

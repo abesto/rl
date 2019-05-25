@@ -14,6 +14,7 @@ use crate::resources::menu::{Menu, MenuKind};
 use crate::resources::messages::Messages;
 use crate::resources::targeting::{Targeting, TargetingKind};
 use crate::resources::ui::{UIState, INVENTORY_WIDTH};
+use crate::systems::input::UseResult::UsedUp;
 use crate::PlayerAction;
 use crate::PlayerAction::*;
 
@@ -201,9 +202,10 @@ impl InputSystem {
         // Apply max_range restriction, if any
         let on_target = {
             let targeting = data.targeting.as_ref().unwrap();
-            if targeting.max_range.map_or(false, |r| {
-                r < player_position.distance_to(&mouse_position).round() as i32
-            }) {
+            if targeting
+                .max_range
+                .map_or(false, |r| r < player_position.distance_to(&mouse_position))
+            {
                 return DidntTakeTurn;
             }
 
@@ -220,6 +222,7 @@ impl InputSystem {
             // After all that, if we're still here, then the player clicked something we like
             match data.item.get(targeting.used_item).unwrap() {
                 Item::Confuse => cast_confuse,
+                Item::Fireball => cast_fireball,
                 // TODO maybe somehow ensure in the type system we can never get here unless using a targetable thing
                 _ => unreachable!(),
             }
@@ -304,6 +307,7 @@ fn use_item_from_inventory(inventory_id: usize, data: &mut InputSystemData) -> P
             Item::Heal => cast_heal,
             Item::Lightning => cast_lightning,
             Item::Confuse => target_confuse,
+            Item::Fireball => target_fireball,
         };
         let result = on_use(entity, data);
         handle_use_result(entity, result, data)
@@ -398,7 +402,7 @@ fn cast_lightning(_entity: Entity, data: &mut InputSystemData) -> UseResult {
     }
 }
 
-const CONFUSE_RANGE: i32 = 8;
+const CONFUSE_RANGE: f32 = 8.0;
 const CONFUSE_NUM_TURNS: i32 = 10;
 
 fn target_confuse(entity: Entity, data: &mut InputSystemData) -> UseResult {
@@ -438,6 +442,45 @@ fn cast_confuse(position: &Position, data: &mut InputSystemData) -> UseResult {
         colors::LIGHT_GREEN,
     );
     UseResult::UsedUp
+}
+
+const FIREBALL_RADIUS: f32 = 3.0;
+const FIREBALL_DAMAGE: i32 = 12;
+
+fn target_fireball(entity: Entity, data: &mut InputSystemData) -> UseResult {
+    *data.targeting = Some(Targeting {
+        used_item: entity,
+        kind: TargetingKind::Tile,
+        max_range: None,
+    });
+    data.messages.push(
+        "Left-click a target tile for the fireball, or right-click to cancel.",
+        colors::CYAN,
+    );
+    UseResult::Targeting
+}
+
+fn cast_fireball(position: &Position, data: &mut InputSystemData) -> UseResult {
+    data.messages.push(
+        format!(
+            "The fireball explodes, burning everything within {} tiles!",
+            FIREBALL_RADIUS
+        ),
+        colors::ORANGE,
+    );
+    for (target_position, living, name) in (&data.position, &mut data.living, &data.name).join() {
+        if position.distance_to(&target_position) <= FIREBALL_RADIUS && living.alive {
+            data.messages.push(
+                format!(
+                    "The {} gets burned for {} hit points.",
+                    name.0, FIREBALL_DAMAGE
+                ),
+                colors::ORANGE,
+            );
+            living.hp -= FIREBALL_DAMAGE;
+        }
+    }
+    UsedUp
 }
 
 /// find closest enemy, up to a maximum range, and in the player's FOV

@@ -6,4 +6,5 @@ pub enum Item {
     Heal,
     Lightning,
     Confuse,
+    Fireball,
 }
