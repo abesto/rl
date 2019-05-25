@@ -76,7 +76,11 @@ impl<'a> System<'a> for AISystem {
                 .join()
                 .find(|j| j.0 == &candidate && j.1.alive)
                 .is_some();
-            if is_attack || !will_move_to.contains(&candidate) {
+            let is_friendly_attack = (&data.position, &data.living, &data.ai)
+                .join()
+                .find(|j| j.0 == &candidate && j.1.alive)
+                .is_some();
+            if is_attack || (!is_friendly_attack && !will_move_to.contains(&candidate)) {
                 *data.velocity.get_mut(monster).unwrap() = velocity;
                 will_move_to.insert(candidate);
             }

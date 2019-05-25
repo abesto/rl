@@ -13,6 +13,7 @@ use crate::components::*;
 use crate::resources::map::Map;
 use crate::resources::menu::Menu;
 use crate::resources::messages::Messages;
+use crate::resources::targeting::Targeting;
 use crate::resources::ui::{self, UIConfig, PANEL_HEIGHT};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,6 +57,7 @@ fn main() {
 
     // Wire it all up
     world.add_resource(PlayerAction::default());
+    world.add_resource::<Option<Targeting>>(None);
     world.register::<Item>();
     dispatcher.setup(&mut world.res);
 
