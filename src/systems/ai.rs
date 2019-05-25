@@ -72,7 +72,7 @@ impl<'a> System<'a> for AISystem {
 
             // Make sure we don't step on each others toes
             let candidate = data.position.get(monster).unwrap() + &velocity;
-            let is_attack = (&data.position, &data.living)
+            let is_attack = (&data.position, &data.living, &data.player)
                 .join()
                 .find(|j| j.0 == &candidate && j.1.alive)
                 .is_some();
