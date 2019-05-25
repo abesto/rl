@@ -90,7 +90,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     defense: 0,
                 })
                 .with(Power(3))
-                .with(Ai::default())
+                .with(Ai::Basic)
                 .build();
         } else {
             world
@@ -110,7 +110,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     defense: 1,
                 })
                 .with(Power(4))
-                .with(Ai::default())
+                .with(Ai::Basic)
                 .build();
         };
     }
@@ -139,8 +139,8 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Name::new("healing potion"))
                     .with(Item::Heal)
                     .build();
-            } else {
-                // create a lightning bolt scroll (30% chance)
+            } else if dice < 0.7 + 0.15 {
+                // create a lightning bolt scroll (15% chance)
                 world
                     .create_entity()
                     .with(position)
@@ -150,6 +150,18 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("scroll of lightning bolt"))
                     .with(Item::Lightning)
+                    .build();
+            } else {
+                // create a lightning bolt scroll (15% chance)
+                world
+                    .create_entity()
+                    .with(position)
+                    .with(Visual {
+                        char: '#',
+                        color: colors::LIGHT_BLUE,
+                    })
+                    .with(Name::new("scroll of confusion"))
+                    .with(Item::Confuse)
                     .build();
             }
         }

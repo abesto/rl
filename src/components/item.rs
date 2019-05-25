@@ -5,4 +5,5 @@ use specs_derive::Component;
 pub enum Item {
     Heal,
     Lightning,
+    Confuse,
 }

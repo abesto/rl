@@ -20,7 +20,7 @@ use crate::PlayerAction::*;
 pub struct InputSystemData<'a> {
     key: Write<'a, Option<Key>>,
 
-    ai: ReadStorage<'a, Ai>,
+    ai: WriteStorage<'a, Ai>,
     name: ReadStorage<'a, Name>,
     living: WriteStorage<'a, Living>,
     player: ReadStorage<'a, Player>,
@@ -238,6 +238,7 @@ fn use_item_from_inventory(inventory_id: usize, data: &mut InputSystemData) -> P
         let on_use = match item {
             Item::Heal => cast_heal,
             Item::Lightning => cast_lightning,
+            Item::Confuse => cast_confuse,
         };
         match on_use(inventory_id, data) {
             UseResult::UsedUp => {
@@ -315,6 +316,39 @@ fn cast_lightning(_inventory_id: usize, data: &mut InputSystemData) -> UseResult
         UseResult::UsedUp
     } else {
         // no enemy found within maximum range
+        data.messages
+            .push("No enemy is close enough to strike.", colors::RED);
+        UseResult::Cancelled
+    }
+}
+
+const CONFUSE_RANGE: i32 = 8;
+const CONFUSE_NUM_TURNS: i32 = 10;
+
+fn cast_confuse(_inventory_id: usize, data: &mut InputSystemData) -> UseResult {
+    // ask the player for a target to confuse
+    let monster = closest_monster(CONFUSE_RANGE, data);
+    if let Some(monster) = monster {
+        let old_ai = data.ai.get(monster).map(Clone::clone).unwrap_or(Ai::Basic);
+        data.ai
+            .insert(
+                monster,
+                Ai::Confused {
+                    previous_ai: Box::new(old_ai),
+                    num_turns: CONFUSE_NUM_TURNS,
+                },
+            )
+            .unwrap();
+        data.messages.push(
+            format!(
+                "The eyes of {} look vacant, as he starts to stumble around!",
+                &data.name.get(monster).unwrap().0
+            ),
+            colors::LIGHT_GREEN,
+        );
+        UseResult::UsedUp
+    } else {
+        // no enemy fonud within maximum range
         data.messages
             .push("No enemy is close enough to strike.", colors::RED);
         UseResult::Cancelled
