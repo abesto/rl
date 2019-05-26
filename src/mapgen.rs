@@ -83,6 +83,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 .with(Visual {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
+                    always_visible: false,
                 })
                 .with(Collider::new())
                 .with(Name::new("orc"))
@@ -104,6 +105,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 .with(Visual {
                     char: 'T',
                     color: colors::DARKER_GREEN,
+                    always_visible: false,
                 })
                 .with(Collider::new())
                 .with(Name::new("troll"))
@@ -140,6 +142,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Visual {
                         char: '!',
                         color: colors::VIOLET,
+                        always_visible: false,
                     })
                     .with(Name::new("healing potion"))
                     .with(Item::Heal)
@@ -153,6 +156,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Visual {
                         char: '#',
                         color: colors::LIGHT_YELLOW,
+                        always_visible: false,
                     })
                     .with(Name::new("scroll of lightning bolt"))
                     .with(Item::Lightning)
@@ -166,6 +170,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Visual {
                         char: '#',
                         color: colors::LIGHT_BLUE,
+                        always_visible: false,
                     })
                     .with(Name::new("scroll of confusion"))
                     .with(Item::Confuse)
@@ -179,6 +184,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     .with(Visual {
                         char: '#',
                         color: colors::DARK_RED,
+                        always_visible: false,
                     })
                     .with(Name::new("scroll of fireball"))
                     .with(Item::Fireball)
@@ -261,6 +267,23 @@ pub fn generate_map(world: &mut World) {
             rooms.push(new_room);
         }
     }
+
+    // create stairs at the center of the last room
+    let (last_room_x, last_room_y) = rooms[rooms.len() - 1].center();
+    world
+        .create_entity()
+        .with(Position {
+            x: last_room_x,
+            y: last_room_y,
+        })
+        .with(Visual {
+            char: '>',
+            color: colors::WHITE,
+            always_visible: true,
+        })
+        .with(Name::new("stairs"))
+        .marked::<U64Marker>()
+        .build();
 
     world.add_resource(map);
 }

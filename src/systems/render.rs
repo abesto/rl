@@ -223,7 +223,10 @@ fn view_game(consoles: &mut UIConsoles, data: &mut RenderSystemData) {
     // Get the items we'll be rendering
     let mut items = (&data.position, &data.visual, &data.entities, &data.name)
         .join()
-        .filter(|j| fov_map.is_in_fov(j.0.x, j.0.y))
+        .filter(|j| {
+            (j.1.always_visible && data.map.as_ref().unwrap()[j.0].explored)
+                || fov_map.is_in_fov(j.0.x, j.0.y)
+        })
         .collect::<Vec<_>>();
     // Things with a collider need to be drawn on top of things without a collider
     // ie. the player is drawn over a corpse

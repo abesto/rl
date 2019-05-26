@@ -114,6 +114,7 @@ fn spawn_player(world: &mut World) {
         .with(Visual {
             char: '@',
             color: colors::WHITE,
+            always_visible: false,
         })
         .with(Collider::new())
         .with(Player::new())

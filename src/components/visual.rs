@@ -8,4 +8,5 @@ use tcod::colors::Color;
 pub struct Visual {
     pub char: char,
     pub color: Color,
+    pub always_visible: bool,
 }
