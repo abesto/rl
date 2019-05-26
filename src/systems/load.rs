@@ -10,6 +10,7 @@ use specs::{
 use crate::{
     components::*, resources::map::Map, resources::messages::Messages, systems::save::Synthetic,
 };
+use std::io::Read;
 
 #[derive(SystemData)]
 pub struct LoadSystemData<'a> {
@@ -45,16 +46,20 @@ impl<'a> System<'a> for LoadSystem {
     type SystemData = LoadSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        let file = File::open("savegame").unwrap();
-        let mut ser = serde_json::Deserializer::from_reader(file);
-        DeserializeComponents::<Combined, _>::deserialize(
-            &mut data.components,
-            &data.entity,
-            &mut data.marker,
-            &mut data.allocator,
-            &mut ser,
-        )
-        .unwrap();
+        use ron::de::Deserializer;
+        let mut buf = String::new();
+        let mut file = File::open("savegame").unwrap();
+        file.read_to_string(&mut buf).unwrap();
+        if let Ok(mut de) = Deserializer::from_str(&buf) {
+            DeserializeComponents::<Combined, _>::deserialize(
+                &mut data.components,
+                &data.entity,
+                &mut data.marker,
+                &mut data.allocator,
+                &mut de,
+            )
+            .unwrap();
+        }
 
         // Pull in global stuff from the synthetic entity they were saved onto, and clean them up
         // from the world space
@@ -71,22 +76,22 @@ impl<'a> System<'a> for LoadSystem {
 
 #[derive(Debug)]
 enum Combined {
-    SerdeJson(serde_json::Error),
+    Ron(ron::ser::Error),
 }
 
 // Implementing the required `Display`-trait, by matching the `Combined` enum, allowing different error types to be displayed.
 impl std::fmt::Display for Combined {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Combined::SerdeJson(ref e) => write!(f, "{}", e),
+            Combined::Ron(ref e) => write!(f, "{}", e),
         }
     }
 }
 
-// This returns the `serde::Error` in form of the `Combined` enum, which can then be matched and displayed accordingly.
-impl From<serde_json::Error> for Combined {
-    fn from(x: serde_json::Error) -> Self {
-        Combined::SerdeJson(x)
+// This returns the `ron::ser::Error` in form of the `Combined` enum, which can then be matched and displayed accordingly.
+impl From<ron::ser::Error> for Combined {
+    fn from(x: ron::ser::Error) -> Self {
+        Combined::Ron(x)
     }
 }
 

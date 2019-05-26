@@ -46,7 +46,7 @@ impl<'a> System<'a> for AISystem {
         }
 
         // Only run if the player took a turn
-        if *data.action == PlayerAction::DidntTakeTurn {
+        if *data.action != PlayerAction::TookTurn {
             return;
         }
 

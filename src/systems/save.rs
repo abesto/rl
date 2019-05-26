@@ -6,6 +6,7 @@ use specs::{
     error::NoError,
     prelude::*,
     saveload::{MarkerAllocator, SerializeComponents, U64Marker, U64MarkerAllocator},
+    Write,
 };
 use specs_derive::Component;
 
@@ -86,8 +87,10 @@ impl<'a> System<'a> for SaveSystem {
     type SystemData = SaveSystemData<'a>;
 
     fn run(&mut self, data: Self::SystemData) {
-        let file = File::create("savegame").unwrap();
-        let mut ser = serde_json::Serializer::new(file);
+        use std::io::Write;
+
+        // Serialize
+        let mut ser = ron::ser::Serializer::new(None, false);
         SerializeComponents::<NoError, U64Marker>::serialize(
             &data.components,
             &data.entity,
@@ -95,6 +98,11 @@ impl<'a> System<'a> for SaveSystem {
             &mut ser,
         )
         .unwrap();
+
+        // Write to disk
+        let mut file = File::create("savegame").unwrap();
+        file.write_all(ser.into_output_string().as_bytes()).unwrap();
+
         // Clean any entities created by SavePrepSystem
         for (entity, _) in (&data.entity, &data.synthetic_marker).join() {
             data.entity.delete(entity).unwrap();
