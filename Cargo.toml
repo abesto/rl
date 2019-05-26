@@ -5,9 +5,12 @@ authors = ["Zoltán Nagy <abesto@abesto.net>"]
 edition = "2018"
 
 [dependencies]
-specs = "0.14.0"
+# TODO get off nightly? need it to get info on which resource failed to load
+specs = { version = "0.14.0", features = ["serde"] }
 specs-derive = "0.4.0"
 shred = { version = "0.7.0", features = ["nightly"] }
 shred-derive = "0.5.0"
-tcod = { git = "https://github.com/abesto/tcod-rs", branch = "send-map" }
+tcod = { git = "https://github.com/abesto/tcod-rs", branch = "send-map", features = ["serialization"] }
 rand = "0.6.5"
+serde = { version = "1.0", features = ["serde_derive"] }
+serde_json = "1.0"

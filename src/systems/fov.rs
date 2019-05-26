@@ -4,8 +4,13 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
-use crate::components::{Player, Position, PreviousPosition};
-use crate::resources::map::{Tiles, MAP_HEIGHT, MAP_WIDTH};
+use crate::{
+    components::{Player, Position, PreviousPosition},
+    resources::{
+        map::{Tiles, MAP_HEIGHT, MAP_WIDTH},
+        state::State,
+    },
+};
 
 const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
@@ -17,6 +22,7 @@ pub struct FovSystemData<'a> {
     position: ReadStorage<'a, Position>,
     prev_position: ReadStorage<'a, PreviousPosition>,
 
+    state: ReadExpect<'a, State>,
     fov_map: Option<WriteExpect<'a, Arc<Mutex<FovMap>>>>,
 }
 
@@ -26,12 +32,12 @@ impl<'a> System<'a> for FovSystem {
     type SystemData = FovSystemData<'a>;
 
     fn run(&mut self, data: Self::SystemData) {
-        if data.fov_map.is_none() {
+        if *data.state != State::Game && *data.state != State::Loaded {
             return;
         }
         for (prev, pos, _) in (&data.prev_position, &data.position, &data.player).join() {
-            // recompute FOV if needed (the player moved or something)
-            if prev.x != pos.x || prev.y != pos.x {
+            // recompute FOV if needed (the player moved, or once after loading a game)
+            if prev.x != pos.x || prev.y != pos.x || *data.state == State::Loaded {
                 let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
                 let fov_map = &mut *fov_map_mutex.lock().unwrap();
                 fov_map.compute_fov(pos.x, pos.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);

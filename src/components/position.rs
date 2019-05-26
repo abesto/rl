@@ -1,12 +1,13 @@
 use std::ops::Add;
 
 use rand::Rng;
-
-use crate::components::Velocity;
+use serde::{Deserialize, Serialize};
 use specs::{Component, VecStorage};
 use specs_derive::Component;
 
-#[derive(Component, Debug, Clone, PartialEq, Eq, Hash)]
+use crate::components::Velocity;
+
+#[derive(Component, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: i32,
@@ -69,7 +70,7 @@ impl Position {
     }
 }
 
-#[derive(Component, Debug, Clone, PartialEq)]
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[storage(VecStorage)]
 pub struct PreviousPosition {
     pub x: i32,

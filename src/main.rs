@@ -1,25 +1,34 @@
-use specs::*;
-use systems::*;
-use tcod::colors;
-use tcod::input::Mouse;
-use tcod::input::{self, Event, Key};
-
 mod components;
 mod mapgen;
 mod resources;
 mod systems;
 
-use crate::components::*;
-use crate::resources::map::Map;
-use crate::resources::menu::{Menu, MenuKind};
-use crate::resources::messages::Messages;
-use crate::resources::targeting::Targeting;
-use crate::resources::ui::{self, UIConfig, UIState, PANEL_HEIGHT};
+use specs::{
+    prelude::*,
+    saveload::{MarkedBuilder, U64Marker, U64MarkerAllocator},
+};
+use tcod::{
+    colors,
+    input::{self, Event, Key, Mouse},
+};
+
+use crate::{
+    components::*,
+    resources::{
+        map::Map,
+        menu::{Menu, MenuKind},
+        messages::Messages,
+        state::State,
+        targeting::Targeting,
+        ui::{self, UIConfig, UIState, PANEL_HEIGHT},
+    },
+    systems::{save::Synthetic, *},
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {
-    TookTurn,
     DidntTakeTurn,
+    TookTurn,
     NewGame,
     LoadGame,
     MainMenu,
@@ -64,7 +73,12 @@ fn setup_ecs(world: &mut World, dispatcher: &mut Dispatcher) {
     world.add_resource::<Option<Targeting>>(None);
     world.add_resource::<Option<Menu>>(None);
     world.add_resource(Messages::new(PANEL_HEIGHT as usize));
+    world.add_resource(U64MarkerAllocator::new());
     world.register::<Item>();
+    world.register::<U64Marker>();
+    world.register::<Map>();
+    world.register::<Messages>();
+    world.register::<Synthetic>();
     dispatcher.setup(&mut world.res);
 }
 
@@ -84,6 +98,9 @@ fn initialize_ui(world: &mut World) {
 
 fn new_map(world: &mut World) {
     Map::new_random(world);
+}
+
+fn create_fov_map(world: &mut World) {
     let fov_map = systems::fov::new_fov_map(&world.read_resource::<Map>().tiles);
     world.add_resource(fov_map);
 }
@@ -98,8 +115,8 @@ fn spawn_player(world: &mut World) {
             char: '@',
             color: colors::WHITE,
         })
-        .with(Collider)
-        .with(Player)
+        .with(Collider::new())
+        .with(Player::new())
         .with(Name::new("player"))
         .with(PreviousPosition { x: -1, y: -1 })
         .with(Living {
@@ -110,6 +127,7 @@ fn spawn_player(world: &mut World) {
         })
         .with(Power(5))
         .with(Inventory::new())
+        .marked::<U64Marker>()
         .build();
 }
 
@@ -148,7 +166,25 @@ fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
             new_game(world);
             dispatcher.dispatch(&world.res);
         }
+        if get_action(world) == PlayerAction::LoadGame {
+            end_game(world);
+            load_game(world);
+
+            // Let systems do any post-load work they need to
+            world.add_resource(PlayerAction::DidntTakeTurn);
+            world.add_resource(State::Loaded);
+            dispatcher.dispatch(&world.res);
+
+            // Start the game
+            world.add_resource(State::Game);
+            world.maintain();
+        }
         if get_action(world) == PlayerAction::MainMenu {
+            SavePrepSystem.run_now(&world.res);
+            world.maintain();
+            SaveSystem.run_now(&world.res);
+            world.maintain();
+
             end_game(world);
             main_menu(world);
             dispatcher.dispatch(&world.res);
@@ -164,13 +200,27 @@ fn end_game(world: &mut World) {
 
 fn new_game(world: &mut World) {
     new_map(world);
+    create_fov_map(world);
     spawn_player(world);
     welcome_message(world);
+    world.add_resource(State::Game);
+    world.add_resource(PlayerAction::DidntTakeTurn);
     world.maintain();
 }
 
+fn load_game(world: &mut World) {
+    // Uncool: create fake instances so that the resources exist.
+    // This might mean it'd be better to maybe make all these resources Option<_>?
+    world.add_resource(Map::empty());
+    world.add_resource(Messages::new(0));
+
+    // Do the actual loading
+    LoadSystem.run_now(&world.res);
+    create_fov_map(world);
+}
+
 fn main_menu(world: &mut World) {
-    *world.write_resource::<Option<Menu>>() = Some(Menu {
+    world.add_resource(Some(Menu {
         items: vec![
             "Play a new game".to_string(),
             "Continue last game".to_string(),
@@ -179,7 +229,9 @@ fn main_menu(world: &mut World) {
         header: "".to_string(),
         width: 24,
         kind: MenuKind::Main,
-    })
+    }));
+    world.add_resource(State::MainMenu);
+    world.add_resource(PlayerAction::DidntTakeTurn);
 }
 
 fn main() {

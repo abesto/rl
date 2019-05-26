@@ -3,20 +3,23 @@ use std::sync::{Arc, Mutex};
 use shred::PanicHandler;
 use shred_derive::SystemData;
 use specs::prelude::*;
-use tcod::colors;
-use tcod::input::KeyCode::*;
-use tcod::input::{Key, Mouse};
-use tcod::map::Map as FovMap;
+use tcod::{
+    colors,
+    input::{Key, KeyCode::*, Mouse},
+    map::Map as FovMap,
+};
 
-use crate::components::velocity::Heading::*;
-use crate::components::*;
-use crate::resources::menu::{Menu, MenuKind};
-use crate::resources::messages::Messages;
-use crate::resources::targeting::{Targeting, TargetingKind};
-use crate::resources::ui::{UIState, INVENTORY_WIDTH};
-use crate::systems::input::UseResult::UsedUp;
-use crate::PlayerAction;
-use crate::PlayerAction::*;
+use crate::{
+    components::{velocity::Heading::*, *},
+    resources::{
+        menu::{Menu, MenuKind},
+        messages::Messages,
+        targeting::{Targeting, TargetingKind},
+        ui::{UIState, INVENTORY_WIDTH},
+    },
+    systems::input::UseResult::UsedUp,
+    PlayerAction::{self, *},
+};
 
 #[derive(SystemData)]
 pub struct InputSystemData<'a> {
@@ -570,7 +573,7 @@ fn closest_monster(max_range: i32, data: &mut InputSystemData) -> Option<Entity>
 fn handle_main_menu_choice(n: usize, _data: &mut InputSystemData) -> PlayerAction {
     match n {
         0 => NewGame,
-        1 => unimplemented!(),
+        1 => LoadGame,
         2 => Exit,
         _ => unreachable!(),
     }

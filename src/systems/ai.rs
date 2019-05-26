@@ -1,17 +1,21 @@
-use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex},
+};
 
-use rand::distributions::{Distribution, Standard};
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use shred_derive::SystemData;
 use specs::prelude::*;
-use tcod::colors;
-use tcod::map::Map as FovMap;
+use tcod::{colors, map::Map as FovMap};
 
-use crate::components::velocity::Heading;
-use crate::components::*;
-use crate::resources::messages::Messages;
-use crate::PlayerAction;
+use crate::{
+    components::{velocity::Heading, *},
+    resources::{messages::Messages, state::State},
+    PlayerAction,
+};
 
 #[derive(SystemData)]
 pub struct AISystemData<'a> {
@@ -24,6 +28,7 @@ pub struct AISystemData<'a> {
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
 
+    state: ReadExpect<'a, State>,
     action: ReadExpect<'a, PlayerAction>,
     fov_map: Option<ReadExpect<'a, Arc<Mutex<FovMap>>>>,
     messages: WriteExpect<'a, Messages>,
@@ -35,8 +40,8 @@ impl<'a> System<'a> for AISystem {
     type SystemData = AISystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        // If there's no FOV map, we're in some weird state, like the main menu
-        if data.fov_map.is_none() {
+        // AI only runs when the game is on
+        if *data.state != State::Game {
             return;
         }
 

@@ -1,13 +1,15 @@
 use std::ops::Index;
 
+use serde::{Deserialize, Serialize};
+use specs::{join::JoinIter, Component, HashMapStorage, ReadStorage, World};
+use specs_derive::Component;
+
 use crate::components::{Collider, Position};
-use specs::join::JoinIter;
-use specs::{ReadStorage, World};
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Tile {
     pub blocked: bool,
     pub block_sight: bool,
@@ -34,12 +36,21 @@ impl Tile {
 
 pub type Tiles = Vec<Vec<Tile>>;
 
+#[derive(Clone, Debug, Serialize, Deserialize, Component)]
+#[storage(HashMapStorage)]
 pub struct Map {
     pub tiles: Tiles,
     pub spawn_point: Position,
 }
 
 impl Map {
+    pub fn empty() -> Map {
+        Map {
+            tiles: vec![vec![]],
+            spawn_point: Position { x: 0, y: 0 },
+        }
+    }
+
     #[allow(dead_code)]
     pub fn new_simple() -> Map {
         use crate::mapgen::*;

@@ -1,8 +1,11 @@
 use std::cmp;
 
 use rand::Rng;
-use specs::world::Builder;
-use specs::World;
+use specs::{
+    saveload::{MarkedBuilder, U64Marker},
+    world::Builder,
+    World,
+};
 use tcod::colors;
 
 use crate::components::*;
@@ -81,7 +84,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     char: 'o',
                     color: colors::DESATURATED_GREEN,
                 })
-                .with(Collider)
+                .with(Collider::new())
                 .with(Name::new("orc"))
                 .with(Living {
                     alive: true,
@@ -91,6 +94,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Power(3))
                 .with(Ai::Basic)
+                .marked::<U64Marker>()
                 .build();
         } else {
             world
@@ -101,7 +105,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     char: 'T',
                     color: colors::DARKER_GREEN,
                 })
-                .with(Collider)
+                .with(Collider::new())
                 .with(Name::new("troll"))
                 .with(Living {
                     alive: true,
@@ -111,6 +115,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Power(4))
                 .with(Ai::Basic)
+                .marked::<U64Marker>()
                 .build();
         };
     }
@@ -138,6 +143,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("healing potion"))
                     .with(Item::Heal)
+                    .marked::<U64Marker>()
                     .build();
             } else if dice < 0.7 + 0.1 {
                 // create a lightning bolt scroll (10% chance)
@@ -150,6 +156,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("scroll of lightning bolt"))
                     .with(Item::Lightning)
+                    .marked::<U64Marker>()
                     .build();
             } else if dice < 0.7 + 0.1 + 0.1 {
                 // create a lightning bolt scroll (10% chance)
@@ -162,6 +169,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("scroll of confusion"))
                     .with(Item::Confuse)
+                    .marked::<U64Marker>()
                     .build();
             } else {
                 // create a fireball scroll (10% chance)
@@ -174,6 +182,7 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                     })
                     .with(Name::new("scroll of fireball"))
                     .with(Item::Fireball)
+                    .marked::<U64Marker>()
                     .build();
             }
         }

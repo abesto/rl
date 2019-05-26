@@ -2,8 +2,10 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::colors;
 
-use crate::components::*;
-use crate::resources::messages::Messages;
+use crate::{
+    components::*,
+    resources::{messages::Messages, state::State},
+};
 
 pub struct MonsterDeathSystem;
 
@@ -18,6 +20,7 @@ pub struct MonsterDeathSystemData<'a> {
     collider: WriteStorage<'a, Collider>,
     power: WriteStorage<'a, Power>,
 
+    state: ReadExpect<'a, State>,
     messages: WriteExpect<'a, Messages>,
     entity: Entities<'a>,
 }
@@ -26,6 +29,10 @@ impl<'a> System<'a> for MonsterDeathSystem {
     type SystemData = MonsterDeathSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
+        if *data.state != State::Game {
+            return;
+        }
+
         if let Some((mut living, mut name, _, mut visual, entity)) = (
             &mut data.living,
             &mut data.name,

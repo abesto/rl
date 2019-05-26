@@ -1,8 +1,13 @@
 use shred_derive::SystemData;
 use specs::prelude::*;
 
-use crate::components::{Collider, Position, Velocity};
-use crate::resources::map::{CalculateBlockedMapExt, Map};
+use crate::{
+    components::{Collider, Position, Velocity},
+    resources::{
+        map::{CalculateBlockedMapExt, Map},
+        state::State,
+    },
+};
 
 pub struct CollisionSystem;
 
@@ -13,15 +18,17 @@ pub struct CollisionSystemData<'a> {
     velocity: WriteStorage<'a, Velocity>,
 
     map: Option<ReadExpect<'a, Map>>,
+    state: ReadExpect<'a, State>,
 }
 
 impl<'a> System<'a> for CollisionSystem {
     type SystemData = CollisionSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        if data.map.is_none() {
+        if *data.state != State::Game {
             return;
         }
+
         for (pos, mut vel) in (&data.position, &mut data.velocity).join() {
             if vel.magnitude == 0 {
                 continue;

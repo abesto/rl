@@ -1,5 +1,10 @@
+use serde::{Deserialize, Serialize};
+use specs::{Component, HashMapStorage};
+use specs_derive::Component;
 use tcod::Color;
 
+#[derive(Clone, Serialize, Deserialize, Debug, Component)]
+#[storage(HashMapStorage)]
 pub struct Messages {
     pub limit: usize,
     pub inner: Vec<(String, Color)>,

@@ -2,8 +2,10 @@ use shred_derive::SystemData;
 use specs::prelude::*;
 use tcod::colors;
 
-use crate::components::*;
-use crate::resources::messages::Messages;
+use crate::{
+    components::*,
+    resources::{messages::Messages, state::State},
+};
 
 pub struct AttackSystem;
 
@@ -15,6 +17,7 @@ pub struct AttackSystemData<'a> {
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
 
+    state: ReadExpect<'a, State>,
     messages: WriteExpect<'a, Messages>,
 }
 
@@ -22,6 +25,10 @@ impl<'a> System<'a> for AttackSystem {
     type SystemData = AttackSystemData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
+        if *data.state != State::Game {
+            return;
+        }
+
         for (attacker_pos, mut vel, attacker_name, attack_power) in
             (&data.position, &mut data.velocity, &data.name, &data.power)
                 .join()

@@ -2,19 +2,18 @@ use std::sync::{Arc, Mutex};
 
 use shred_derive::SystemData;
 use specs::prelude::*;
-use tcod::colors::*;
-use tcod::console::*;
-use tcod::input::Mouse;
-use tcod::map::Map as FovMap;
+use tcod::{colors::*, console::*, input::Mouse, map::Map as FovMap};
 
-use crate::components::*;
-use crate::resources::map::{Map, MAP_HEIGHT, MAP_WIDTH};
-use crate::resources::menu::{Menu, MenuKind};
-use crate::resources::messages::Messages;
-use crate::resources::ui::{
-    UIConsoles, UIState, BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_HEIGHT, SCREEN_WIDTH,
+use crate::{
+    components::*,
+    resources::{
+        map::{Map, MAP_HEIGHT, MAP_WIDTH},
+        menu::Menu,
+        messages::Messages,
+        state::State,
+        ui::{UIConsoles, UIState, BAR_WIDTH, PANEL_HEIGHT, PANEL_Y, SCREEN_HEIGHT, SCREEN_WIDTH},
+    },
 };
-use crate::PlayerAction;
 
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
 const COLOR_DARK_GROUND: Color = Color {
@@ -56,7 +55,7 @@ pub struct RenderSystemData<'a> {
     mouse: ReadExpect<'a, Mouse>,
     ui: WriteExpect<'a, UIState>,
     menu: ReadExpect<'a, Option<Menu>>,
-    action: ReadExpect<'a, PlayerAction>,
+    state: ReadExpect<'a, State>,
 }
 
 fn draw_object(offscreen: &mut Offscreen, position: &Position, visual: &Visual) {
@@ -330,18 +329,11 @@ impl<'a> System<'a> for RenderSystem {
         let consoles = &mut *consoles_mutex.lock().unwrap();
 
         prepare_for_new_frame(consoles, &mut data);
-
-        match data.menu.as_ref().map(|m| m.kind) {
-            Some(MenuKind::Main) => view_main_menu(consoles),
-            _ => {
-                if *data.action == PlayerAction::TookTurn
-                    || *data.action == PlayerAction::DidntTakeTurn
-                {
-                    view_game(consoles, &mut data);
-                }
-            }
+        match *data.state {
+            State::Game => view_game(consoles, &mut data),
+            State::MainMenu => view_main_menu(consoles),
+            State::Loaded => (),
         };
-
         if let Some(m) = data.menu.as_ref() {
             render_menu(&mut consoles.root, m);
         };

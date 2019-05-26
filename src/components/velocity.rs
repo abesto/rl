@@ -1,11 +1,12 @@
 use std::convert::From;
 
+use serde::{Deserialize, Serialize};
 use specs::{Component, VecStorage};
 use specs_derive::Component;
 
 // Intentionally not implemented as a vector; that makes things more complex, it can come later
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Heading {
     North,
     East,
@@ -19,7 +20,7 @@ impl Default for Heading {
     }
 }
 
-#[derive(Component, Debug, PartialEq, Clone, Default)]
+#[derive(Component, Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 #[storage(VecStorage)]
 pub struct Velocity {
     pub heading: Heading,
