@@ -162,29 +162,13 @@ fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
         }
         dispatcher.dispatch(&world.res);
         if get_action(world) == PlayerAction::NewGame {
-            end_game(world);
             new_game(world);
-            dispatcher.dispatch(&world.res);
         }
         if get_action(world) == PlayerAction::LoadGame {
-            end_game(world);
             load_game(world);
-
-            // Let systems do any post-load work they need to
-            world.add_resource(PlayerAction::DidntTakeTurn);
-            world.add_resource(State::Loaded);
-            dispatcher.dispatch(&world.res);
-
-            // Start the game
-            world.add_resource(State::Game);
-            world.maintain();
         }
         if get_action(world) == PlayerAction::MainMenu {
-            SavePrepSystem.run_now(&world.res);
-            world.maintain();
-            SaveSystem.run_now(&world.res);
-            world.maintain();
-
+            save_game(world);
             end_game(world);
             main_menu(world);
             dispatcher.dispatch(&world.res);
@@ -199,6 +183,7 @@ fn end_game(world: &mut World) {
 }
 
 fn new_game(world: &mut World) {
+    end_game(world);
     new_map(world);
     create_fov_map(world);
     spawn_player(world);
@@ -208,7 +193,17 @@ fn new_game(world: &mut World) {
     world.maintain();
 }
 
+fn save_game(world: &mut World) {
+    SavePrepSystem.run_now(&world.res);
+    world.maintain();
+    SaveSystem.run_now(&world.res);
+    world.maintain();
+}
+
 fn load_game(world: &mut World) {
+    // Start from a clean state
+    end_game(world);
+
     // Uncool: create fake instances so that the resources exist.
     // This might mean it'd be better to maybe make all these resources Option<_>?
     world.add_resource(Map::empty());
@@ -217,6 +212,11 @@ fn load_game(world: &mut World) {
     // Do the actual loading
     LoadSystem.run_now(&world.res);
     create_fov_map(world);
+
+    // Start the game
+    world.add_resource(PlayerAction::DidntTakeTurn);
+    world.add_resource(State::Game);
+    world.maintain();
 }
 
 fn main_menu(world: &mut World) {
