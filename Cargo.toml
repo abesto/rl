@@ -10,7 +10,7 @@ specs = { version = "0.14.0", features = ["serde"] }
 specs-derive = "0.4.0"
 shred = { version = "0.7.0", features = ["nightly"] }
 shred-derive = "0.5.0"
-tcod = { git = "https://github.com/abesto/tcod-rs", branch = "send-map", features = ["serialization"] }
+tcod = { git = "https://github.com/abesto/tcod-rs", features = ["serialization"] }
 rand = "0.6.5"
 serde = { version = "1.0", features = ["serde_derive"] }
 ron = "0.5"

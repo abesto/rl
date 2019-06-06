@@ -1,3 +1,5 @@
+#![feature(slice_patterns)]
+
 mod components;
 mod mapgen;
 mod resources;
@@ -32,6 +34,7 @@ pub enum PlayerAction {
     NewGame,
     LoadGame,
     MainMenu,
+    NextLevel,
     Exit,
 }
 
@@ -132,6 +135,39 @@ fn spawn_player(world: &mut World) {
         .build();
 }
 
+fn next_level(world: &mut World) {
+    // TODO This should probably move into a system at some point
+    // First, clean up everything from the current level
+    let entities: Vec<Entity> = (
+        &world.entities(),
+        &world.read_storage::<Position>(),
+        !&world.read_storage::<Player>(),
+    )
+        .join()
+        .map(|j| j.0)
+        .collect();
+    world.delete_entities(&entities).unwrap();
+
+    // Then create the new map
+    new_map(world);
+    create_fov_map(world);
+
+    // And move the player to the spawn point of the new map
+    let player_entity: Entity = (&world.entities(), &world.read_storage::<Player>())
+        .join()
+        .next()
+        .unwrap()
+        .0;
+    let spawn_point = world.read_resource::<Map>().spawn_point.clone();
+    world
+        .write_storage::<Position>()
+        .insert(player_entity, spawn_point)
+        .unwrap();
+
+    // And go!
+    world.add_resource(PlayerAction::DidntTakeTurn);
+}
+
 fn get_action(world: &World) -> PlayerAction {
     *world.read_resource::<PlayerAction>()
 }
@@ -162,17 +198,17 @@ fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
             }
         }
         dispatcher.dispatch(&world.res);
-        if get_action(world) == PlayerAction::NewGame {
-            new_game(world);
-        }
-        if get_action(world) == PlayerAction::LoadGame {
-            load_game(world);
-        }
-        if get_action(world) == PlayerAction::MainMenu {
-            save_game(world);
-            end_game(world);
-            main_menu(world);
-            dispatcher.dispatch(&world.res);
+        match get_action(world) {
+            PlayerAction::NewGame => new_game(world),
+            PlayerAction::LoadGame => load_game(world),
+            PlayerAction::MainMenu => {
+                save_game(world);
+                end_game(world);
+                main_menu(world);
+                dispatcher.dispatch(&world.res);
+            }
+            PlayerAction::NextLevel => next_level(world),
+            _ => (),
         }
     }
 }

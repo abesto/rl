@@ -92,54 +92,67 @@ impl InputSystem {
                         *vel = Velocity::unit(West);
                         TookTurn
                     }
-                    (
-                        Key {
-                            code: Char,
-                            printable: 'i',
-                            ..
-                        },
-                        true,
-                    ) => {
-                        // show a menu with each item of the inventory as an option
-                        *data.menu = Some(inventory_menu(&inventory, data.name));
-                        DidntTakeTurn
-                    }
-                    (
-                        Key {
-                            code: Char,
-                            printable: 'g',
-                            ..
-                        },
-                        true,
-                    ) => {
-                        // pick up an item
-                        let (player_pos, _) = (&data.position, &data.player).join().next().unwrap();
-                        if let Some((item, name, _, _)) =
-                            (&data.entity, &data.name, &data.position, &data.item)
-                                .join()
-                                .find(|j| j.2 == player_pos)
-                        {
-                            pick_item_up(
-                                item,
-                                name,
-                                &mut data.position,
-                                inventory,
-                                &mut data.messages,
-                            )
-                        } else {
-                            DidntTakeTurn
+                    (Key { code: Text, .. }, true) => {
+                        match k.text() {
+                            "i" => {
+                                // show a menu with each item of the inventory as an option
+                                *data.menu = Some(inventory_menu(&inventory, data.name));
+                                DidntTakeTurn
+                            }
+                            "g" => {
+                                // pick up an item
+                                let (player_pos, _) =
+                                    (&data.position, &data.player).join().next().unwrap();
+                                if let Some((item, name, _, _)) =
+                                    (&data.entity, &data.name, &data.position, &data.item)
+                                        .join()
+                                        .find(|j| j.2 == player_pos)
+                                {
+                                    pick_item_up(
+                                        item,
+                                        name,
+                                        &mut data.position,
+                                        inventory,
+                                        &mut data.messages,
+                                    )
+                                } else {
+                                    DidntTakeTurn
+                                }
+                            }
+                            "d" => {
+                                *data.menu = Some(drop_menu(&inventory, data.name));
+                                DidntTakeTurn
+                            }
+                            ">" => {
+                                let (player_pos, player_living, _) =
+                                    (&data.position, &mut data.living, &data.player)
+                                        .join()
+                                        .next()
+                                        .unwrap();
+                                let (stairs_pos, _) = (&data.position, &data.name)
+                                    .join()
+                                    .find(|j| (j.1).0 == "stairs")
+                                    .unwrap();
+                                if player_pos == stairs_pos {
+                                    data.messages.push(
+                                        "You take a moment to rest, and recover your strength.",
+                                        colors::VIOLET,
+                                    );
+                                    let heal_hp = player_living.max_hp / 2;
+                                    heal(player_living, heal_hp);
+
+                                    data.messages.push(
+                                        "After a rare moment of peace, you descend deeper into \
+                                         the heart of the dungeon...",
+                                        colors::RED,
+                                    );
+                                    NextLevel
+                                } else {
+                                    DidntTakeTurn
+                                }
+                            }
+                            _ => DidntTakeTurn,
                         }
-                    }
-                    (
-                        Key {
-                            code: Char,
-                            printable: 'd',
-                            ..
-                        },
-                        true,
-                    ) => {
-                        *data.menu = Some(drop_menu(&inventory, data.name));
-                        DidntTakeTurn
                     }
                     _ => DidntTakeTurn,
                 }
