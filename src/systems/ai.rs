@@ -1,7 +1,4 @@
-use std::{
-    collections::HashSet,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -13,8 +10,7 @@ use tcod::{colors, map::Map as FovMap};
 
 use crate::{
     components::{velocity::Heading, *},
-    resources::{messages::Messages, state::State},
-    PlayerAction,
+    resources::{input_action::InputAction, messages::Messages, state::State},
 };
 
 #[derive(SystemData)]
@@ -24,14 +20,16 @@ pub struct AISystemData<'a> {
     player: ReadStorage<'a, Player>,
     name: ReadStorage<'a, Name>,
     entity: Entities<'a>,
+    action: WriteStorage<'a, Action>,
+    energy: ReadStorage<'a, Energy>,
 
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
 
+    input_action: Write<'a, InputAction>,
     state: ReadExpect<'a, State>,
-    action: ReadExpect<'a, PlayerAction>,
     fov_map: Option<ReadExpect<'a, Arc<Mutex<FovMap>>>>,
-    messages: WriteExpect<'a, Messages>,
+    messages: Write<'a, Messages>,
 }
 
 pub struct AISystem;
@@ -45,11 +43,6 @@ impl<'a> System<'a> for AISystem {
             return;
         }
 
-        // Only run if the player took a turn
-        if *data.action != PlayerAction::TookTurn {
-            return;
-        }
-
         // Only run if the player is living
         if !(&data.player, &data.living)
             .join()
@@ -59,43 +52,23 @@ impl<'a> System<'a> for AISystem {
             return;
         }
 
-        // Used so that monsters don't step on each others toes
-        let mut will_move_to: HashSet<Position> = HashSet::new();
-
         // Select the entities we'll want to apply AI logic to
-        let monsters: Vec<Entity> = {
+        let monsters: Vec<(Entity, bool)> = {
             let fov_map_mutex = data.fov_map.as_ref().unwrap().clone();
             let fov_map = &*fov_map_mutex.lock().unwrap();
-            (
-                &data.living,
-                &data.position,
-                &data.velocity,
-                &data.ai,
-                &data.entity,
-            )
+            (&data.living, &data.position, &data.ai, &data.entity)
                 .join()
-                .filter(|j| j.0.alive && fov_map.is_in_fov(j.1.x, j.1.y))
-                .map(|j| j.4)
+                .filter(|j| j.0.alive)
+                .map(|j| (j.3, fov_map.is_in_fov(j.1.x, j.1.y)))
                 .collect()
         };
 
-        for monster in monsters {
-            // Decide where we want to go
-            let velocity = run_ai(monster, &mut data);
-
-            // Make sure we don't step on each others toes
-            let candidate = data.position.get(monster).unwrap() + &velocity;
-            let is_attack = (&data.position, &data.living, &data.player)
-                .join()
-                .find(|j| j.0 == &candidate && j.1.alive)
-                .is_some();
-            let is_friendly_attack = (&data.position, &data.living, &data.ai)
-                .join()
-                .find(|j| j.0 == &candidate && j.1.alive)
-                .is_some();
-            if is_attack || (!is_friendly_attack && !will_move_to.contains(&candidate)) {
-                *data.velocity.get_mut(monster).unwrap() = velocity;
-                will_move_to.insert(candidate);
+        // And run that AI
+        for (monster, visible) in monsters {
+            *data.action.get_mut(monster).unwrap() = if visible {
+                run_ai(monster, &mut data)
+            } else {
+                Action::Skip { ticks: 1 }
             }
         }
     }
@@ -113,21 +86,26 @@ impl Distribution<Heading> for Standard {
     }
 }
 
-fn run_ai(entity: Entity, data: &mut AISystemData) -> Velocity {
+fn run_ai(entity: Entity, data: &mut AISystemData) -> Action {
     let ai = data.ai.get(entity).unwrap();
     match ai {
         Ai::Basic => basic_ai(entity, data),
         Ai::Confused { .. } => confused_ai(entity, data),
+        Ai::Player => player_ai(data),
     }
 }
 
-fn basic_ai(entity: Entity, data: &mut AISystemData) -> Velocity {
+fn basic_ai(entity: Entity, data: &mut AISystemData) -> Action {
     let (player_pos, _) = (&data.position, &data.player).join().next().unwrap();
     let monster_pos = data.position.get(entity).unwrap();
-    monster_pos.move_towards(player_pos)
+    Action::MoveOrMelee {
+        velocity: monster_pos.move_towards(player_pos),
+        attack_monsters: false,
+        attack_player: true,
+    }
 }
 
-fn confused_ai(entity: Entity, data: &mut AISystemData) -> Velocity {
+fn confused_ai(entity: Entity, data: &mut AISystemData) -> Action {
     let ai = data.ai.get_mut(entity).unwrap();
     match ai {
         Ai::Confused {
@@ -146,12 +124,37 @@ fn confused_ai(entity: Entity, data: &mut AISystemData) -> Velocity {
                 );
                 run_ai(entity, data)
             } else {
-                Velocity {
-                    magnitude: 1,
-                    heading: rand::thread_rng().gen(),
+                Action::MoveOrMelee {
+                    velocity: Velocity {
+                        magnitude: 1,
+                        heading: rand::thread_rng().gen(),
+                    },
+                    attack_monsters: true,
+                    attack_player: true,
                 }
             }
         }
         _ => unreachable!(),
     }
+}
+
+fn player_move_or_melee(heading: Heading) -> Action {
+    Action::MoveOrMelee {
+        velocity: Velocity::from(heading),
+        attack_monsters: true,
+        attack_player: false,
+    }
+}
+
+fn player_ai(data: &mut AISystemData) -> Action {
+    use crate::resources::input_action::InputAction::*;
+    let action = match *data.input_action {
+        MoveNorth => player_move_or_melee(Heading::North),
+        MoveEast => player_move_or_melee(Heading::East),
+        MoveSouth => player_move_or_melee(Heading::South),
+        MoveWest => player_move_or_melee(Heading::West),
+        _ => Action::WaitForInput,
+    };
+    *data.input_action = InputAction::Noop;
+    action
 }

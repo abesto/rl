@@ -24,7 +24,7 @@ pub struct SavePrepSystemData<'a> {
     map_res: ReadExpect<'a, Map>,
     map_comp: WriteStorage<'a, Map>,
 
-    messages_res: ReadExpect<'a, Messages>,
+    messages_res: Read<'a, Messages>,
     messages_comp: WriteStorage<'a, Messages>,
 
     synthetic_marker: WriteStorage<'a, Synthetic>,
@@ -60,8 +60,7 @@ impl<'a> System<'a> for SavePrepSystem {
 #[derive(SystemData)]
 pub struct SaveSystemData<'a> {
     entity: Entities<'a>,
-    components: (
-        ReadStorage<'a, Ai>,
+    components0: (
         ReadStorage<'a, Collider>,
         ReadStorage<'a, Inventory>,
         ReadStorage<'a, Item>,
@@ -76,9 +75,24 @@ pub struct SaveSystemData<'a> {
         ReadStorage<'a, Synthetic>,
         ReadStorage<'a, Velocity>,
         ReadStorage<'a, Visual>,
+        ReadStorage<'a, Energy>,
+        WriteStorage<'a, Action>,
     ),
+    components1: (ReadStorage<'a, Ai>,),
     synthetic_marker: ReadStorage<'a, Synthetic>,
     marker: ReadStorage<'a, U64Marker>,
+}
+
+macro_rules! do_ser {
+    ($ser:expr, $data:ident.$field:ident) => {
+        SerializeComponents::<NoError, U64Marker>::serialize(
+            &$data.$field,
+            &$data.entity,
+            &$data.marker,
+            &mut $ser,
+        )
+        .unwrap();
+    };
 }
 
 pub struct SaveSystem;
@@ -91,13 +105,8 @@ impl<'a> System<'a> for SaveSystem {
 
         // Serialize
         let mut ser = ron::ser::Serializer::new(None, false);
-        SerializeComponents::<NoError, U64Marker>::serialize(
-            &data.components,
-            &data.entity,
-            &data.marker,
-            &mut ser,
-        )
-        .unwrap();
+        do_ser!(ser, data.components0);
+        do_ser!(ser, data.components1);
 
         // Write to disk
         let mut file = File::create("savegame").unwrap();

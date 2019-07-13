@@ -19,9 +19,11 @@ pub struct MonsterDeathSystemData<'a> {
     ai: WriteStorage<'a, Ai>,
     collider: WriteStorage<'a, Collider>,
     power: WriteStorage<'a, Power>,
+    energy: WriteStorage<'a, Energy>,
+    action: WriteStorage<'a, Action>,
 
     state: ReadExpect<'a, State>,
-    messages: WriteExpect<'a, Messages>,
+    messages: Write<'a, Messages>,
     entity: Entities<'a>,
 }
 
@@ -50,6 +52,7 @@ impl<'a> System<'a> for MonsterDeathSystem {
 
             // You are now dead
             living.alive = false;
+
             // Horrible to behold
             visual.char = '%';
             visual.color = colors::DARK_RED;
@@ -57,6 +60,8 @@ impl<'a> System<'a> for MonsterDeathSystem {
             data.ai.remove(entity); // Stripped of your intelligence
             data.power.remove(entity); // Stripped of your power
             data.collider.remove(entity); // Stripped of your very essence
+            data.action.remove(entity); // No last words for you
+            data.energy.remove(entity); // Rest shall grant you no reprieve
             name.0 = format!("remains of {}", name.0); // Even your name shall be forgotten
         }
     }

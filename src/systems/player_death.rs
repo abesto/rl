@@ -15,8 +15,8 @@ pub struct PlayerDeathSystemData<'a> {
     player: ReadStorage<'a, Player>,
     visual: WriteStorage<'a, Visual>,
 
-    state: ReadExpect<'a, State>,
-    messages: WriteExpect<'a, Messages>,
+    state: Read<'a, State>,
+    messages: Write<'a, Messages>,
 }
 
 impl<'a> System<'a> for PlayerDeathSystem {

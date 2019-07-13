@@ -24,7 +24,7 @@ impl Default for Heading {
 #[storage(VecStorage)]
 pub struct Velocity {
     pub heading: Heading,
-    pub magnitude: usize,
+    pub magnitude: u8,
 }
 
 impl Velocity {
@@ -49,7 +49,7 @@ impl Velocity {
         }
     }
 
-    pub fn with_magnitude(&self, magnitude: usize) -> Velocity {
+    pub fn with_magnitude(&self, magnitude: u8) -> Velocity {
         Velocity {
             heading: self.heading.clone(),
             magnitude,
@@ -74,22 +74,22 @@ impl From<(i32, i32)> for Velocity {
         if x < 0 {
             return Velocity {
                 heading: Heading::West,
-                magnitude: -x as usize,
+                magnitude: -x as u8,
             };
         } else if x > 0 {
             return Velocity {
                 heading: Heading::East,
-                magnitude: x as usize,
+                magnitude: x as u8,
             };
         } else if y < 0 {
             return Velocity {
                 heading: Heading::North,
-                magnitude: -y as usize,
+                magnitude: -y as u8,
             };
         } else if y > 0 {
             return Velocity {
                 heading: Heading::South,
-                magnitude: y as usize,
+                magnitude: y as u8,
             };
         }
         Velocity {

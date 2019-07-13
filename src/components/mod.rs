@@ -1,5 +1,7 @@
+mod action;
 mod ai;
 mod collider;
+mod energy;
 mod inventory;
 mod item;
 mod living;
@@ -10,8 +12,10 @@ mod power;
 pub mod velocity;
 mod visual;
 
+pub use action::Action;
 pub use ai::Ai;
 pub use collider::Collider;
+pub use energy::Energy;
 pub use inventory::Inventory;
 pub use item::Item;
 pub use living::Living;

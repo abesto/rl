@@ -3,6 +3,8 @@ use specs::{Component, HashMapStorage};
 use specs_derive::Component;
 use tcod::Color;
 
+use crate::resources::ui::PANEL_HEIGHT;
+
 #[derive(Clone, Serialize, Deserialize, Debug, Component)]
 #[storage(HashMapStorage)]
 pub struct Messages {
@@ -27,5 +29,11 @@ impl Messages {
 
     pub fn clear(&mut self) {
         self.inner.clear();
+    }
+}
+
+impl Default for Messages {
+    fn default() -> Self {
+        Self::new(PANEL_HEIGHT as usize)
     }
 }

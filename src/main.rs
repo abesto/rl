@@ -2,6 +2,7 @@
 
 mod components;
 mod mapgen;
+mod meta_dispatcher;
 mod resources;
 mod systems;
 
@@ -16,7 +17,9 @@ use tcod::{
 
 use crate::{
     components::*,
+    meta_dispatcher::MetaDispatcher,
     resources::{
+        input_action::InputAction,
         map::Map,
         menu::{Menu, MenuKind},
         messages::Messages,
@@ -27,55 +30,83 @@ use crate::{
     systems::{save::Synthetic, *},
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum PlayerAction {
-    DidntTakeTurn,
-    TookTurn,
-    NewGame,
-    LoadGame,
-    MainMenu,
-    NextLevel,
-    Exit,
+fn build_dispatcher<'a, 'b>() -> MetaDispatcher<'a, 'b> {
+    let mut meta = MetaDispatcher::new();
+
+    meta.once(
+        DispatcherBuilder::new()
+            .with(LocationHistorySystem, "location_history", &[])
+            .with(InputSystem, "input", &[])
+            .with(MenuSystem, "menu", &["input"])
+            .build(),
+    );
+
+    meta.run_while(
+        |world| {
+            let state = world.read_resource::<State>();
+            if *state != State::Game {
+                return false;
+            }
+            let energy = world.read_storage::<Energy>();
+            let entity = world.entities();
+            let player = world.read_storage::<Player>();
+            let action = world.read_storage::<Action>();
+            let input_action = world.read_resource::<InputAction>();
+            // Keep running the think-act loop as long as
+            (&entity, &energy)
+                .join()
+                .find(|(entity, energy)| {
+                    // there is at least one entity with enough energy to act
+                    if !energy.can_act() {
+                        false
+                    } else {
+                        let is_player = player.get(*entity).is_some();
+                        // If that entity is the player
+                        if is_player {
+                            // tick only if the player has input an action (otherwise we just wait)
+                            let is_waiting_for_input = action
+                                .get(*entity)
+                                .map(|action| *action == Action::WaitForInput)
+                                .unwrap_or(false);
+                            if !is_waiting_for_input {
+                                return true;
+                            }
+                            let has_input = *input_action != InputAction::Noop;
+                            has_input
+                        } else {
+                            true
+                        }
+                    }
+                })
+                .is_some()
+        },
+        DispatcherBuilder::new()
+            .with(AISystem, "ai", &[])
+            .with(MoveAndMeleeSystem, "move_and_melee", &["ai"])
+            .with(CollisionSystem, "collision", &["move_and_melee"])
+            .with(MovementSystem, "movement", &["move_and_melee", "collision"])
+            .with(SkipSystem, "skip", &["ai"])
+            .with(PickUpSystem, "pick_up", &["ai"])
+            .with(MonsterDeathSystem, "monster_death", &["move_and_melee"])
+            .with(PlayerDeathSystem, "player_death", &["move_and_melee"])
+            .build(),
+    );
+
+    meta.once(
+        DispatcherBuilder::new()
+            .with(FovSystem, "fov", &[])
+            .with(FogOfWarSystem, "fog_of_war", &["fov"])
+            .with(TimeSystem, "time", &[])
+            .with_thread_local(RenderSystem)
+            .build(),
+    );
+
+    meta
 }
 
-impl Default for PlayerAction {
-    fn default() -> PlayerAction {
-        PlayerAction::DidntTakeTurn
-    }
-}
-
-fn build_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
-    // TODO define a separate dispatcher for the main menu, and so get rid of Option<> resources
-    DispatcherBuilder::new()
-        .with(InputSystem, "input", &[])
-        .with(LocationHistorySystem, "location_history", &[])
-        .with_barrier() // Player turn
-        .with(AttackSystem, "player_attack", &["input"])
-        .with(CollisionSystem, "player_collision", &["player_attack"])
-        .with(
-            MovementSystem,
-            "player_movement",
-            &["player_collision", "location_history"],
-        )
-        .with(FovSystem, "fov", &["player_movement"])
-        .with(MonsterDeathSystem, "monster_death", &["player_attack"])
-        .with_barrier() // Monster turn
-        .with(AISystem, "ai", &[])
-        .with(AttackSystem, "monster_attack", &["ai"])
-        .with(CollisionSystem, "monster_collision", &["monster_attack"])
-        .with(MovementSystem, "monster_movement", &["monster_collision"])
-        .with(PlayerDeathSystem, "player_death", &["monster_attack"])
-        .with_barrier() // Rendering
-        .with(FogOfWarSystem, "fog_of_war", &["fov"])
-        .with_thread_local(RenderSystem)
-        .build()
-}
-
-fn setup_ecs(world: &mut World, dispatcher: &mut Dispatcher) {
-    world.add_resource(PlayerAction::default());
+fn setup_ecs(world: &mut World, dispatcher: &mut MetaDispatcher) {
     world.add_resource::<Option<Targeting>>(None);
     world.add_resource::<Option<Menu>>(None);
-    world.add_resource(Messages::new(PANEL_HEIGHT as usize));
     world.add_resource(U64MarkerAllocator::new());
     world.register::<Item>();
     world.register::<U64Marker>();
@@ -131,6 +162,9 @@ fn spawn_player(world: &mut World) {
         })
         .with(Power(5))
         .with(Inventory::new())
+        .with(Action::WaitForInput)
+        .with(Ai::Player)
+        .with(Energy::new())
         .marked::<U64Marker>()
         .build();
 }
@@ -163,17 +197,14 @@ fn next_level(world: &mut World) {
         .write_storage::<Position>()
         .insert(player_entity, spawn_point)
         .unwrap();
-
-    // And go!
-    world.add_resource(PlayerAction::DidntTakeTurn);
 }
 
-fn get_action(world: &World) -> PlayerAction {
-    *world.read_resource::<PlayerAction>()
+fn get_action(world: &World) -> InputAction {
+    *world.read_resource::<InputAction>()
 }
 
 fn exited(world: &World) -> bool {
-    get_action(world) == PlayerAction::Exit
+    get_action(world) == InputAction::Exit
 }
 
 fn window_closed(world: &World) -> bool {
@@ -183,8 +214,8 @@ fn window_closed(world: &World) -> bool {
     consoles.root.window_closed()
 }
 
-fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
-    dispatcher.dispatch(&world.res);
+fn game_loop(world: &mut World, dispatcher: &mut MetaDispatcher) {
+    dispatcher.dispatch(&world);
     while !exited(world) && !window_closed(world) {
         world.maintain();
         {
@@ -197,17 +228,17 @@ fn game_loop(world: &mut World, dispatcher: &mut Dispatcher) {
                 _ => *world.write_resource::<Option<Key>>() = None,
             }
         }
-        dispatcher.dispatch(&world.res);
+        dispatcher.dispatch(&world);
         match get_action(world) {
-            PlayerAction::NewGame => new_game(world),
-            PlayerAction::LoadGame => load_game(world),
-            PlayerAction::MainMenu => {
+            InputAction::NewGame => new_game(world),
+            InputAction::LoadGame => load_game(world),
+            InputAction::MainMenu => {
                 save_game(world);
                 end_game(world);
                 main_menu(world);
-                dispatcher.dispatch(&world.res);
+                dispatcher.dispatch(&world);
             }
-            PlayerAction::NextLevel => next_level(world),
+            InputAction::NextLevel => next_level(world),
             _ => (),
         }
     }
@@ -226,7 +257,6 @@ fn new_game(world: &mut World) {
     spawn_player(world);
     welcome_message(world);
     world.add_resource(State::Game);
-    world.add_resource(PlayerAction::DidntTakeTurn);
     world.maintain();
 }
 
@@ -251,24 +281,14 @@ fn load_game(world: &mut World) {
     create_fov_map(world);
 
     // Start the game
-    world.add_resource(PlayerAction::DidntTakeTurn);
     world.add_resource(State::Game);
     world.maintain();
 }
 
 fn main_menu(world: &mut World) {
-    world.add_resource(Some(Menu {
-        items: vec![
-            "Play a new game".to_string(),
-            "Continue last game".to_string(),
-            "Quit".to_string(),
-        ],
-        header: "".to_string(),
-        width: 24,
-        kind: MenuKind::Main,
-    }));
-    world.add_resource(State::MainMenu);
-    world.add_resource(PlayerAction::DidntTakeTurn);
+    world.add_resource(InputAction::MainMenu);
+    MenuSystem.run_now(&world.res);
+    world.add_resource(InputAction::Noop);
 }
 
 fn main() {

@@ -95,6 +95,8 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Power(3))
                 .with(Ai::Basic)
+                .with(Action::noop())
+                .with(Energy::new())
                 .marked::<U64Marker>()
                 .build();
         } else {
@@ -117,6 +119,8 @@ fn place_objects(map: &Map, room: Rect, world: &mut World) {
                 })
                 .with(Power(4))
                 .with(Ai::Basic)
+                .with(Energy::new())
+                .with(Action::noop())
                 .marked::<U64Marker>()
                 .build();
         };

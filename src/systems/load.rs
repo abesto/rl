@@ -15,8 +15,7 @@ use std::io::Read;
 #[derive(SystemData)]
 pub struct LoadSystemData<'a> {
     entity: Entities<'a>,
-    components: (
-        WriteStorage<'a, Ai>,
+    components0: (
         WriteStorage<'a, Collider>,
         WriteStorage<'a, Inventory>,
         WriteStorage<'a, Item>,
@@ -31,13 +30,29 @@ pub struct LoadSystemData<'a> {
         WriteStorage<'a, Synthetic>,
         WriteStorage<'a, Velocity>,
         WriteStorage<'a, Visual>,
+        WriteStorage<'a, Energy>,
+        WriteStorage<'a, Action>,
     ),
+    components1: (WriteStorage<'a, Ai>,),
 
     allocator: Write<'a, U64MarkerAllocator>,
     marker: WriteStorage<'a, U64Marker>,
 
     map_res: WriteExpect<'a, Map>,
-    messages_res: WriteExpect<'a, Messages>,
+    messages_res: Write<'a, Messages>,
+}
+
+macro_rules! do_deser {
+    ($de:expr, $data:ident.$field:ident) => {
+        DeserializeComponents::<Combined, _>::deserialize(
+            &mut $data.$field,
+            &$data.entity,
+            &mut $data.marker,
+            &mut $data.allocator,
+            &mut $de,
+        )
+        .unwrap();
+    };
 }
 
 pub struct LoadSystem;
@@ -51,19 +66,14 @@ impl<'a> System<'a> for LoadSystem {
         let mut file = File::open("savegame").unwrap();
         file.read_to_string(&mut buf).unwrap();
         if let Ok(mut de) = Deserializer::from_str(&buf) {
-            DeserializeComponents::<Combined, _>::deserialize(
-                &mut data.components,
-                &data.entity,
-                &mut data.marker,
-                &mut data.allocator,
-                &mut de,
-            )
-            .unwrap();
+            do_deser!(de, data.components0);
+            do_deser!(de, data.components1);
         }
 
         // Pull in global stuff from the synthetic entity they were saved onto, and clean them up
         // from the world space
-        for (entity, map, messages) in (&data.entity, &data.components.5, &data.components.6).join()
+        for (entity, map, messages) in
+            (&data.entity, &data.components0.4, &data.components0.5).join()
         {
             *data.map_res = map.clone();
             *data.messages_res = messages.clone();

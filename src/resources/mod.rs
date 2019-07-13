@@ -1,3 +1,4 @@
+pub mod input_action;
 pub mod map;
 pub mod menu;
 pub mod messages;

@@ -51,7 +51,7 @@ pub struct RenderSystemData<'a> {
 
     fov_map: Option<ReadExpect<'a, Arc<Mutex<FovMap>>>>,
     map: Option<ReadExpect<'a, Map>>,
-    messages: ReadExpect<'a, Messages>,
+    messages: Read<'a, Messages>,
     mouse: ReadExpect<'a, Mouse>,
     ui: WriteExpect<'a, UIState>,
     menu: ReadExpect<'a, Option<Menu>>,
