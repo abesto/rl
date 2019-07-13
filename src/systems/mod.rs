@@ -1,5 +1,6 @@
 mod ai;
 mod collision;
+mod drop;
 mod fog_of_war;
 pub mod fov;
 mod input;
@@ -15,9 +16,11 @@ mod render;
 pub mod save;
 mod skip;
 mod time;
+mod use_item;
 
 pub use ai::AISystem;
 pub use collision::CollisionSystem;
+pub use drop::DropSystem;
 pub use fog_of_war::FogOfWarSystem;
 pub use fov::FovSystem;
 pub use input::InputSystem;
@@ -33,3 +36,4 @@ pub use render::RenderSystem;
 pub use save::{SavePrepSystem, SaveSystem};
 pub use skip::SkipSystem;
 pub use time::TimeSystem;
+pub use use_item::UseItemSystem;

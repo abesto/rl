@@ -86,6 +86,8 @@ fn build_dispatcher<'a, 'b>() -> MetaDispatcher<'a, 'b> {
             .with(CollisionSystem, "collision", &["move_and_melee"])
             .with(MovementSystem, "movement", &["move_and_melee", "collision"])
             .with(SkipSystem, "skip", &["ai"])
+            .with(DropSystem, "drop", &["ai"])
+            .with(UseItemSystem, "use_item", &["ai"])
             .with(PickUpSystem, "pick_up", &["ai"])
             .with(MonsterDeathSystem, "monster_death", &["move_and_melee"])
             .with(PlayerDeathSystem, "player_death", &["move_and_melee"])

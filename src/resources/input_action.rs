@@ -10,8 +10,13 @@ pub enum InputAction {
     MoveDown,
 
     PickUp,
+    Drop(usize),
+    UseFromInventory(usize),
+
     OpenDropMenu,
     OpenInventoryMenu,
+    MenuChoice(usize),
+    DismissMenu,
 
     // Game operations
     NewGame,

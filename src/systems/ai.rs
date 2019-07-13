@@ -21,7 +21,6 @@ pub struct AISystemData<'a> {
     name: ReadStorage<'a, Name>,
     entity: Entities<'a>,
     action: WriteStorage<'a, Action>,
-    energy: ReadStorage<'a, Energy>,
 
     position: ReadStorage<'a, Position>,
     velocity: WriteStorage<'a, Velocity>,
@@ -153,6 +152,9 @@ fn player_ai(data: &mut AISystemData) -> Action {
         MoveEast => player_move_or_melee(Heading::East),
         MoveSouth => player_move_or_melee(Heading::South),
         MoveWest => player_move_or_melee(Heading::West),
+        Drop(n) => Action::Drop { inventory_index: n },
+        UseFromInventory(n) => Action::UseFromInventory { inventory_index: n },
+        PickUp => Action::PickUp,
         _ => Action::WaitForInput,
     };
     *data.input_action = InputAction::Noop;

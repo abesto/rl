@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use specs::{prelude::*, Component};
 use specs_derive::Component;
 
-use crate::components::{Energy, Velocity};
+use crate::components::Velocity;
 
 #[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Action {
@@ -16,6 +16,12 @@ pub enum Action {
         attack_monsters: bool,
     },
     PickUp,
+    Drop {
+        inventory_index: usize,
+    },
+    UseFromInventory {
+        inventory_index: usize,
+    },
 }
 
 impl Action {
@@ -26,6 +32,8 @@ impl Action {
             MoveOrMelee { velocity, .. } => velocity.magnitude,
             PickUp => 1,
             WaitForInput => 0,
+            Drop { .. } => 1,
+            UseFromInventory { .. } => 1,
         }
     }
 
